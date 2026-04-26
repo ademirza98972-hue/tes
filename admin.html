@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Nova Audio — Admin</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'Inter',sans-serif;background:#f4f4f5;color:#111;min-height:100vh}
+    .topbar{background:#fff;border-bottom:1px solid #e8e8e8;padding:13px 28px;display:flex;align-items:center;justify-content:space-between}
+    .logo{font-size:15px;font-weight:700}.logo em{color:#16a34a;font-style:normal}
+    .badge{background:#fee2e2;border:1px solid #fecaca;color:#dc2626;font-size:10px;font-weight:700;padding:4px 10px;border-radius:20px;font-family:'JetBrains Mono',monospace}
+    .wrap{max-width:800px;margin:32px auto;padding:0 20px}
+    .card{background:#fff;border-radius:16px;border:1px solid #e8e8e8;padding:24px;margin-bottom:20px}
+    .card h2{font-size:14px;font-weight:700;margin-bottom:16px;color:#374151}
+    .form-row{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap}
+    input,select{padding:9px 14px;border-radius:8px;border:1px solid #e4e4e7;font-size:13px;font-family:'Inter',sans-serif;outline:none;flex:1;min-width:180px}
+    input:focus,select:focus{border-color:#16a34a}
+    input[type=password]{font-family:'JetBrains Mono',monospace}
+    .btn{padding:9px 20px;border-radius:8px;border:none;font-size:13px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;transition:all .2s;white-space:nowrap}
+    .btn-green{background:#16a34a;color:#fff}.btn-green:hover{background:#15803d}
+    .btn-red{background:#dc2626;color:#fff}.btn-red:hover{background:#b91c1c}
+    .btn-gray{background:#f4f4f5;color:#555;border:1px solid #e4e4e7}.btn-gray:hover{background:#e5e5e5}
+    .msg{padding:10px 14px;border-radius:8px;font-size:12px;font-weight:600;margin-top:10px;display:none;font-family:'JetBrains Mono',monospace}
+    .msg.ok{background:#f0fdf4;border:1px solid #bbf7d0;color:#15803d}
+    .msg.err{background:#fef2f2;border:1px solid #fecaca;color:#dc2626}
+    table{width:100%;border-collapse:collapse}
+    th{text-align:left;font-size:10px;font-weight:700;color:#9ca3af;letter-spacing:1px;text-transform:uppercase;padding:8px 12px;border-bottom:1px solid #f0f0f0;font-family:'JetBrains Mono',monospace}
+    td{padding:10px 12px;font-size:13px;border-bottom:1px solid #f9f9f9;vertical-align:middle}
+    .pill{display:inline-block;padding:3px 10px;border-radius:20px;font-size:10px;font-weight:700;font-family:'JetBrains Mono',monospace}
+    .pill.premium{background:#f0fdf4;color:#15803d;border:1px solid #bbf7d0}
+    .pill.free{background:#f4f4f5;color:#9ca3af;border:1px solid #e4e4e7}
+    .avatar{width:28px;height:28px;border-radius:50%;margin-right:8px;vertical-align:middle}
+    .empty{text-align:center;padding:32px;color:#9ca3af;font-size:13px}
+    .secret-warn{background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:12px 16px;font-size:12px;color:#92400e;margin-bottom:16px}
+  </style>
+</head>
+<body>
+<div class="topbar">
+  <div class="logo">Nova<em>.Audio</em></div>
+  <div class="badge">🔐 Admin Panel</div>
+</div>
+<div class="wrap">
+
+  <div class="card">
+    <h2>🔑 Aktivasi / Nonaktifkan Premium</h2>
+    <div class="secret-warn">⚠️ Masukkan Admin Secret setiap kali melakukan aksi. Jangan share halaman ini ke siapapun.</div>
+    <div class="form-row">
+      <input type="password" id="secret" placeholder="Admin Secret...">
+      <input type="text" id="userId" placeholder="Discord User ID (misal: 123456789)">
+      <select id="action">
+        <option value="activate">✅ Aktifkan Premium</option>
+        <option value="deactivate">❌ Nonaktifkan Premium</option>
+      </select>
+      <button class="btn btn-green" onclick="doAdmin()">Jalankan</button>
+    </div>
+    <div class="msg" id="adminMsg"></div>
+  </div>
+
+  <div class="card">
+    <h2>👥 Semua User</h2>
+    <div class="form-row" style="margin-bottom:12px">
+      <input type="password" id="secret2" placeholder="Admin Secret untuk load data...">
+      <button class="btn btn-gray" onclick="loadUsers()">Load Users</button>
+    </div>
+    <div id="userTable"><div class="empty">Masukkan admin secret dan klik Load Users</div></div>
+  </div>
+
+</div>
+<script>
+async function doAdmin(){
+  const secret=document.getElementById('secret').value.trim();
+  const userId=document.getElementById('userId').value.trim();
+  const action=document.getElementById('action').value;
+  const msg=document.getElementById('adminMsg');
+  if(!secret||!userId){showMsg(msg,'⚠ Isi semua field!','err');return;}
+  const res=await fetch('/api/admin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({secret,userId,action})});
+  const data=await res.json();
+  if(data.ok){
+    showMsg(msg,`✓ User ${userId} berhasil di-${action==='activate'?'aktifkan':'nonaktifkan'}!`,'ok');
+  } else {
+    showMsg(msg,'⚠ '+( data.error||'Gagal'),'err');
+  }
+}
+
+async function loadUsers(){
+  const secret=document.getElementById('secret2').value.trim();
+  if(!secret){alert('Masukkan admin secret dulu!');return;}
+  const res=await fetch('/api/users?secret='+encodeURIComponent(secret));
+  if(!res.ok){document.getElementById('userTable').innerHTML='<div class="empty">❌ Secret salah atau error</div>';return;}
+  const users=await res.json();
+  if(!users.length){document.getElementById('userTable').innerHTML='<div class="empty">Belum ada user yang terdaftar</div>';return;}
+  let html=`<table><thead><tr><th>User</th><th>Discord ID</th><th>Status</th><th>Bypass Hari Ini</th><th>Aksi</th></tr></thead><tbody>`;
+  users.forEach(u=>{
+    const avatar=u.avatar?`https://cdn.discordapp.com/avatars/${u.id}/${u.avatar}.png`:`https://cdn.discordapp.com/embed/avatars/0.png`;
+    html+=`<tr>
+      <td><img src="${avatar}" class="avatar"><strong>${u.username}</strong></td>
+      <td style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#9ca3af">${u.id}</td>
+      <td><span class="pill ${u.is_premium?'premium':'free'}">${u.is_premium?'⭐ Premium':'Free'}</span></td>
+      <td style="font-family:'JetBrains Mono',monospace">${u.bypass_count}/3</td>
+      <td>
+        ${u.is_premium
+          ?`<button class="btn btn-red" style="font-size:11px;padding:5px 12px" onclick="quickAction('${u.id}','deactivate')">Nonaktifkan</button>`
+          :`<button class="btn btn-green" style="font-size:11px;padding:5px 12px" onclick="quickAction('${u.id}','activate')">Aktifkan</button>`
+        }
+      </td>
+    </tr>`;
+  });
+  html+=`</tbody></table>`;
+  document.getElementById('userTable').innerHTML=html;
+}
+
+async function quickAction(userId,action){
+  const secret=document.getElementById('secret2').value.trim();
+  if(!secret){alert('Masukkan admin secret dulu!');return;}
+  const res=await fetch('/api/admin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({secret,userId,action})});
+  const data=await res.json();
+  if(data.ok){loadUsers();}
+  else alert('Error: '+(data.error||'Gagal'));
+}
+
+function showMsg(el,text,type){el.textContent=text;el.className='msg '+type;el.style.display='block';setTimeout(()=>el.style.display='none',4000);}
+</script>
+</body>
+</html>
