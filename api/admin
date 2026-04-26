@@ -1,0 +1,25 @@
+const SUPABASE_URL = 'https://wxxyvijfqzhhkeewvklz.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind4eHl2aWpmcXpoaGtlZXd2a2x6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcxMjI3MTAsImV4cCI6MjA5MjY5ODcxMH0.aoocrLIEFMN7b511CO9NyFUcLzVvq5MOzf0RMdezu0c';
+const ADMIN_SECRET = process.env.ADMIN_SECRET;
+
+module.exports = async function handler(req, res) {
+  if (req.method !== 'POST') return res.status(405).end();
+
+  const { secret, userId, action } = req.body;
+  if (secret !== ADMIN_SECRET) return res.status(403).json({ error: 'Unauthorized' });
+  if (!userId || !action) return res.status(400).json({ error: 'Missing params' });
+
+  const isPremium = action === 'activate';
+
+  await fetch(`${SUPABASE_URL}/rest/v1/users?id=eq.${userId}`, {
+    method: 'PATCH',
+    headers: {
+      'apikey': SUPABASE_KEY,
+      'Authorization': `Bearer ${SUPABASE_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ is_premium: isPremium }),
+  });
+
+  res.status(200).json({ ok: true, userId, isPremium });
+}
