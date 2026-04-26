@@ -363,6 +363,7 @@ const EQ_TYPES=['lowshelf','peaking','peaking','peaking','peaking','peaking','pe
 const playBtn=document.getElementById('playBtn');
 const wrapEl=document.getElementById('waveWrap');
 
+// Attach events ke static elements (selalu ada)
 playBtn.addEventListener('click',e=>{e.stopPropagation();togglePlay();});
 document.getElementById('btnRestart').addEventListener('click',()=>seekToSec(trimStart||0));
 document.getElementById('btnStop').addEventListener('click',()=>stopAll());
@@ -507,26 +508,31 @@ function updateProg(){
 }
 function cxToRatio(cx){const r=wrapEl.getBoundingClientRect();return Math.max(0,Math.min(1,(cx-r.left)/r.width));}
 function ratioToTime(r){return r*(audioBuffer?audioBuffer.duration:0);}
-wrapEl.addEventListener('mousemove',e=>{
-  if(!audioBuffer)return;const ratio=cxToRatio(e.clientX);
-  if(trimMode){if(trimDrag==='start'){trimStart=Math.min(ratioToTime(ratio),trimEnd-.1);updateTrimUI();renderTrimOverlay();}else if(trimDrag==='end'){trimEnd=Math.max(ratioToTime(ratio),trimStart+.1);updateTrimUI();renderTrimOverlay();}return;}
-  const ghost=document.getElementById('seekGhost'),tip=document.getElementById('seekTip');
-  ghost.style.left=(ratio*100)+'%';ghost.style.opacity='.5';
-  tip.style.display='block';tip.style.left=(ratio*100)+'%';tip.textContent=ft(ratioToTime(ratio));
-  if(seekDrag){pausedAt=ratioToTime(ratio);renderWave(ratio);renderTrimOverlay();setTime(ft(pausedAt)+' / '+ft(audioBuffer.duration));}
-});
-wrapEl.addEventListener('mouseleave',()=>{document.getElementById('seekGhost').style.opacity='0';document.getElementById('seekTip').style.display='none';trimDrag=null;});
-wrapEl.addEventListener('mousedown',e=>{
-  if(!audioBuffer)return;e.stopPropagation();
-  if(trimMode){const t=ratioToTime(cxToRatio(e.clientX));trimDrag=Math.abs(t-trimStart)<Math.abs(t-trimEnd)?'start':'end';return;}
-  seekDrag=true;const was=isPlaying;
-  if(isPlaying){try{player.stop();}catch(ex){}pausedAt+=(Tone.now()-startedAt)*speed;isPlaying=false;clearInterval(pTimer);playBtn.textContent='▶';}
-  const ratio=cxToRatio(e.clientX);pausedAt=ratioToTime(ratio);renderWave(ratio);renderTrimOverlay();
-  setTime(ft(pausedAt)+' / '+ft(audioBuffer.duration));wrapEl._was=was;
-});
-document.addEventListener('mouseup',()=>{if(trimDrag){trimDrag=null;return;}if(!seekDrag)return;seekDrag=false;if(wrapEl._was)_startPb();});
-wrapEl.addEventListener('touchstart',e=>{if(!audioBuffer||trimMode)return;const was=isPlaying;if(isPlaying){try{player.stop();}catch(ex){}pausedAt+=(Tone.now()-startedAt)*speed;isPlaying=false;clearInterval(pTimer);playBtn.textContent='▶';}const ratio=cxToRatio(e.touches[0].clientX);pausedAt=ratioToTime(ratio);renderWave(ratio);wrapEl._was=was;},{passive:true});
-wrapEl.addEventListener('touchend',()=>{if(wrapEl._was)_startPb();},{passive:true});
+
+let waveEventsInit=false;
+function initWaveEvents(){
+  if(waveEventsInit)return;waveEventsInit=true;
+  wrapEl.addEventListener('mousemove',e=>{
+    if(!audioBuffer)return;const ratio=cxToRatio(e.clientX);
+    if(trimMode){if(trimDrag==='start'){trimStart=Math.min(ratioToTime(ratio),trimEnd-.1);updateTrimUI();renderTrimOverlay();}else if(trimDrag==='end'){trimEnd=Math.max(ratioToTime(ratio),trimStart+.1);updateTrimUI();renderTrimOverlay();}return;}
+    const ghost=document.getElementById('seekGhost'),tip=document.getElementById('seekTip');
+    ghost.style.left=(ratio*100)+'%';ghost.style.opacity='.5';
+    tip.style.display='block';tip.style.left=(ratio*100)+'%';tip.textContent=ft(ratioToTime(ratio));
+    if(seekDrag){pausedAt=ratioToTime(ratio);renderWave(ratio);renderTrimOverlay();setTime(ft(pausedAt)+' / '+ft(audioBuffer.duration));}
+  });
+  wrapEl.addEventListener('mouseleave',()=>{document.getElementById('seekGhost').style.opacity='0';document.getElementById('seekTip').style.display='none';trimDrag=null;});
+  wrapEl.addEventListener('mousedown',e=>{
+    if(!audioBuffer)return;e.stopPropagation();
+    if(trimMode){const t=ratioToTime(cxToRatio(e.clientX));trimDrag=Math.abs(t-trimStart)<Math.abs(t-trimEnd)?'start':'end';return;}
+    seekDrag=true;const was=isPlaying;
+    if(isPlaying){try{player.stop();}catch(ex){}pausedAt+=(Tone.now()-startedAt)*speed;isPlaying=false;clearInterval(pTimer);playBtn.textContent='▶';}
+    const ratio=cxToRatio(e.clientX);pausedAt=ratioToTime(ratio);renderWave(ratio);renderTrimOverlay();
+    setTime(ft(pausedAt)+' / '+ft(audioBuffer.duration));wrapEl._was=was;
+  });
+  document.addEventListener('mouseup',()=>{if(trimDrag){trimDrag=null;return;}if(!seekDrag)return;seekDrag=false;if(wrapEl._was)_startPb();});
+  wrapEl.addEventListener('touchstart',e=>{if(!audioBuffer||trimMode)return;const was=isPlaying;if(isPlaying){try{player.stop();}catch(ex){}pausedAt+=(Tone.now()-startedAt)*speed;isPlaying=false;clearInterval(pTimer);playBtn.textContent='▶';}const ratio=cxToRatio(e.touches[0].clientX);pausedAt=ratioToTime(ratio);renderWave(ratio);wrapEl._was=was;},{passive:true});
+  wrapEl.addEventListener('touchend',()=>{if(wrapEl._was)_startPb();},{passive:true});
+}
 
 async function _startPb(){
   await Tone.start();if(isPlaying)return;
@@ -775,6 +781,7 @@ function loadFile(file){
   document.getElementById('waveLabel').textContent=file.name.length>40?file.name.slice(0,40)+'...':file.name;
   document.getElementById('mainUI').style.display='block';
   document.getElementById('loginGate').style.display='none';
+  initWaveEvents();
   showStatus('⏳ decoding audio...');
   const reader=new FileReader();reader.onload=async e=>{rawBuf=e.target.result;await setupTone(rawBuf);};reader.readAsArrayBuffer(file);
 }
