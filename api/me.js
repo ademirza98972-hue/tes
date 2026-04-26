@@ -10,7 +10,6 @@ function parseCookie(str) {
   return obj;
 }
 
-// Simple in-memory rate limiter
 const rateLimitMap = new Map();
 function rateLimit(ip, max=30, windowMs=60000) {
   const now = Date.now();
@@ -19,6 +18,24 @@ function rateLimit(ip, max=30, windowMs=60000) {
   entry.count++;
   rateLimitMap.set(ip, entry);
   return entry.count > max;
+}
+
+function getPlanInfo(user) {
+  const now = new Date();
+  let plan = user.plan || 'free';
+
+  // Cek apakah plan sudah expired
+  if (plan !== 'free' && user.plan_expiry) {
+    const expiry = new Date(user.plan_expiry);
+    if (now > expiry) {
+      plan = 'free'; // expired, downgrade ke free
+    }
+  }
+
+  const isUnlimited = plan === 'basic' || plan === 'premium';
+  const exportLimit = isUnlimited ? 999 : 3;
+
+  return { plan, isUnlimited, exportLimit, planExpiry: user.plan_expiry };
 }
 
 module.exports = async function handler(req, res) {
@@ -43,8 +60,20 @@ module.exports = async function handler(req, res) {
     const user = users?.[0];
     if (!user) return res.status(200).json({ loggedIn: false });
 
+    const { plan, isUnlimited, exportLimit, planExpiry } = getPlanInfo(user);
+
+    // Auto downgrade di database kalau plan expired
+    if (plan === 'free' && user.plan !== 'free') {
+      await fetch(`${SUPABASE_URL}/rest/v1/users?id=eq.${user.id}`, {
+        method: 'PATCH',
+        headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plan: 'free', plan_expiry: null }),
+      });
+    }
+
+    // Reset bypass count harian
     const today = new Date().toISOString().split('T')[0];
-    if (user.bypass_reset_date !== today) {
+    if (user.bypass_reset_date !== today && !isUnlimited) {
       await fetch(`${SUPABASE_URL}/rest/v1/users?id=eq.${user.id}`, {
         method: 'PATCH',
         headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' },
@@ -53,13 +82,17 @@ module.exports = async function handler(req, res) {
       user.bypass_count = 0;
     }
 
+    const exportLeft = isUnlimited ? 999 : Math.max(0, exportLimit - user.bypass_count);
+
     res.status(200).json({
       loggedIn: true,
       id: user.id,
       username: user.username,
       avatar: user.avatar,
-      isPremium: user.is_premium,
-      exportLeft: user.is_premium ? 999 : Math.max(0, 3 - user.bypass_count),
+      plan,
+      planExpiry,
+      isUnlimited,
+      exportLeft,
     });
   } catch (err) {
     res.status(200).json({ loggedIn: false });
