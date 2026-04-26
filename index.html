@@ -697,7 +697,10 @@ async function toggleBypass(){
     // Update badge
     if (!currentUser?.isPremium && data.bypassLeft !== undefined) {
       const badge = document.getElementById('bypassBadge');
-      if (badge) badge.textContent = `⚡ ${data.bypassLeft}/3 bypass`;
+      if(badge){
+        badge.textContent = `⚡ ${data.bypassLeft}/3 bypass tersisa`;
+        if(data.bypassLeft===0) badge.style.color='#dc2626';
+      }
     }
   } catch(e) {
     showStatus('⚠ Gagal cek limit, coba lagi', 3000);
@@ -855,7 +858,7 @@ function renderUserArea(user) {
 
   const bypassInfo = user.isPremium
     ? `<span style="font-size:10px;font-weight:700;color:#15803d;background:#dcfce7;border:1px solid #bbf7d0;padding:3px 10px;border-radius:20px;font-family:'JetBrains Mono',monospace">⭐ Premium</span>`
-    : `<span id="bypassBadge" style="font-size:10px;font-weight:700;color:#d97706;background:#fef3c7;border:1px solid #fde68a;padding:3px 10px;border-radius:20px;font-family:'JetBrains Mono',monospace">⚡ ${user.bypassLeft}/3 bypass</span>`;
+    : `<span id="bypassBadge" style="font-size:10px;font-weight:700;color:#d97706;background:#fef3c7;border:1px solid #fde68a;padding:3px 10px;border-radius:20px;font-family:'JetBrains Mono',monospace">⚡ ${user.bypassLeft}/3 bypass tersisa</span>`;
 
   document.getElementById('userArea').innerHTML = `
     ${bypassInfo}
