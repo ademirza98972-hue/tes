@@ -48,8 +48,8 @@ module.exports = async function handler(req, res) {
       username: user.username,
       avatar: user.avatar,
       isPremium: user.is_premium,
-      bypassCount: user.bypass_count,
-      bypassLeft: user.is_premium ? 999 : Math.max(0, 3 - user.bypass_count),
+      exportCount: user.bypass_count,
+      exportLeft: user.is_premium ? 999 : Math.max(0, 3 - user.bypass_count),
     });
   } catch (err) {
     res.status(200).json({ loggedIn: false });
