@@ -1,5 +1,5 @@
 module.exports = function handler(req, res) {
-  const CLIENT_ID = '1497802915585200159';
+  const CLIENT_ID = process.env.DISCORD_CLIENT_ID;
   const REDIRECT_URI = `https://${req.headers.host}/api/callback`;
 
   const params = new URLSearchParams({
