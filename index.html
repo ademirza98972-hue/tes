@@ -756,6 +756,12 @@ async function initAuth(){
     currentUser=data;
     document.getElementById('loginGate').style.display='none';
     renderUserArea(data);
+    // Force update badge dengan nilai fresh dari server
+    const badge=document.getElementById('exportBadge');
+    if(badge&&!data.isPremium){
+      badge.textContent=`📤 sisa ${data.exportLeft}/3`;
+      badge.style.color=data.exportLeft>0?'var(--accent)':'#ff6b6b';
+    }
     if(!data.isPremium&&data.exportLeft<=0)showLimitPopup();
   }catch(e){document.getElementById('loginGate').style.display='flex';}
 }
