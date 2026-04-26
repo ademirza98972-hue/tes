@@ -2,7 +2,6 @@ const SUPABASE_URL = 'https://wxxyvijfqzhhkeewvklz.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind4eHl2aWpmcXpoaGtlZXd2a2x6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcxMjI3MTAsImV4cCI6MjA5MjY5ODcxMH0.aoocrLIEFMN7b511CO9NyFUcLzVvq5MOzf0RMdezu0c';
 const CLIENT_ID = '1497802915585200159';
 const CLIENT_SECRET = 'BqxBXOaMa5eyZsEI18W4pKrv2UBfSfXB';
-const DISCORD_INVITE = 'https://discord.gg/saNDWMhVt9';
 
 module.exports = async function handler(req, res) {
   const { code } = req.query;
@@ -50,7 +49,7 @@ module.exports = async function handler(req, res) {
       }),
     });
 
-    // 4. Set cookie session
+    // 4. Set cookie & langsung balik ke website
     const session = Buffer.from(JSON.stringify({
       id: user.id,
       username: user.username,
@@ -58,9 +57,7 @@ module.exports = async function handler(req, res) {
     })).toString('base64');
 
     res.setHeader('Set-Cookie', `nova_session=${session}; Path=/; HttpOnly; Max-Age=2592000; SameSite=Lax`);
-
-    // 5. Redirect ke server Discord dulu, lalu balik ke website
-    res.redirect(DISCORD_INVITE);
+    res.redirect('/');
   } catch (err) {
     console.error(err);
     res.redirect('/?error=server_error');
