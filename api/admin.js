@@ -1,25 +1,88 @@
-const SUPABASE_URL = 'https://wxxyvijfqzhhkeewvklz.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind4eHl2aWpmcXpoaGtlZXd2a2x6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcxMjI3MTAsImV4cCI6MjA5MjY5ODcxMH0.aoocrLIEFMN7b511CO9NyFUcLzVvq5MOzf0RMdezu0c';
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_KEY = process.env.SUPABASE_KEY;
 const ADMIN_SECRET = process.env.ADMIN_SECRET;
 
+const adminAttempts = new Map();
+function adminRateLimit(ip) {
+  const now = Date.now();
+  const entry = adminAttempts.get(ip) || { count: 0, start: now, blocked: false };
+  if (entry.blocked && now - entry.start < 900000) return true;
+  if (now - entry.start > 300000) { entry.count = 0; entry.start = now; entry.blocked = false; }
+  entry.count++;
+  if (entry.count > 5) { entry.blocked = true; entry.start = now; }
+  adminAttempts.set(ip, entry);
+  return entry.blocked;
+}
+
 module.exports = async function handler(req, res) {
-  if (req.method !== 'POST') return res.status(405).end();
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  if (req.method === 'OPTIONS') return res.status(200).end();
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const { secret, userId, action } = req.body;
-  if (secret !== ADMIN_SECRET) return res.status(403).json({ error: 'Unauthorized' });
-  if (!userId || !action) return res.status(400).json({ error: 'Missing params' });
+  const ip = req.headers['x-forwarded-for'] || req.socket?.remoteAddress || 'unknown';
+  if (adminRateLimit(ip)) return res.status(429).json({ error: 'Terlalu banyak percobaan. Coba lagi dalam 15 menit.' });
 
-  const isPremium = action === 'activate';
+  let body = req.body;
+  if (typeof body === 'string') {
+    try { body = JSON.parse(body); } catch { return res.status(400).json({ error: 'Invalid JSON' }); }
+  }
+  if (!body) return res.status(400).json({ error: 'Empty body' });
 
-  await fetch(`${SUPABASE_URL}/rest/v1/users?id=eq.${userId}`, {
+  const { secret, userId, action, plan, duration } = body;
+
+  if (!ADMIN_SECRET) return res.status(500).json({ error: 'Server tidak dikonfigurasi' });
+  if (!secret || secret !== ADMIN_SECRET) return res.status(403).json({ error: 'Secret salah' });
+  if (!userId || !action) return res.status(400).json({ error: 'Missing userId atau action' });
+
+  let updateData = {};
+
+  if (action === 'set_plan') {
+    // Set plan dengan durasi
+    if (!plan) return res.status(400).json({ error: 'Missing plan' });
+
+    let expiry = null;
+    if (plan !== 'free' && duration) {
+      const now = new Date();
+      if (duration === 'weekly') {
+        now.setDate(now.getDate() + 7);
+      } else if (duration === 'monthly') {
+        now.setMonth(now.getMonth() + 1);
+      } else if (duration === 'lifetime') {
+        now.setFullYear(now.getFullYear() + 100); // practically forever
+      }
+      expiry = now.toISOString();
+    }
+
+    updateData = { plan, plan_expiry: expiry, is_premium: plan !== 'free' };
+
+  } else if (action === 'reset_export') {
+    updateData = { bypass_count: 0, bypass_reset_date: new Date().toISOString().split('T')[0] };
+
+  } else if (action === 'activate') {
+    updateData = { plan: 'premium', is_premium: true, plan_expiry: null };
+  } else if (action === 'deactivate') {
+    updateData = { plan: 'free', is_premium: false, plan_expiry: null };
+  } else {
+    return res.status(400).json({ error: 'Action tidak valid' });
+  }
+
+  const patchRes = await fetch(`${SUPABASE_URL}/rest/v1/users?id=eq.${userId}`, {
     method: 'PATCH',
     headers: {
       'apikey': SUPABASE_KEY,
       'Authorization': `Bearer ${SUPABASE_KEY}`,
       'Content-Type': 'application/json',
+      'Prefer': 'return=representation',
     },
-    body: JSON.stringify({ is_premium: isPremium }),
+    body: JSON.stringify(updateData),
   });
 
-  res.status(200).json({ ok: true, userId, isPremium });
-}
+  const result = await patchRes.json();
+  if (!result || result.length === 0) {
+    return res.status(404).json({ error: 'User tidak ditemukan. Pastikan user sudah pernah login.' });
+  }
+
+  res.status(200).json({ ok: true, userId, updateData, user: result[0] });
+};
