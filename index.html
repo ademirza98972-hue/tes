@@ -690,7 +690,7 @@ async function doExport(){
     const lr=await fetch('/api/bypass',{method:'POST'});const ld=await lr.json();
     if(!ld.ok){if(ld.limitReached){showLimitPopup();return;}showStatus('⚠ '+(ld.error||'Gagal'),3000);return;}
     const badge=document.getElementById('exportBadge');
-    if(badge){badge.textContent=`📤 ${ld.exportLeft}/3 export`;if(ld.exportLeft===0)badge.style.color='#ff6b6b';}
+    if(badge){badge.textContent=`📤 sisa ${ld.exportLeft}/3`;if(ld.exportLeft===0)badge.style.color='#ff6b6b';}
     if(currentUser)currentUser.exportLeft=ld.exportLeft;
   }
   const btn=document.getElementById('exportBtn'),lbl=document.getElementById('exportLbl'),bar=document.getElementById('exportProg');
@@ -762,9 +762,9 @@ async function initAuth(){
 
 function renderUserArea(user){
   const avatar=user.avatar?`https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png`:`https://cdn.discordapp.com/embed/avatars/0.png`;
-  const badge=user.isPremium
+    const badge=user.isPremium
     ?`<span style="font-size:10px;font-weight:600;padding:3px 9px;border-radius:20px;background:rgba(200,242,97,.1);border:1px solid rgba(200,242,97,.2);color:var(--accent)">⭐ Premium</span>`
-    :`<span id="exportBadge" style="font-size:10px;font-weight:600;padding:3px 9px;border-radius:20px;background:rgba(200,242,97,.1);border:1px solid rgba(200,242,97,.2);color:${user.exportLeft>0?'var(--accent)':'#ff6b6b'}">📤 ${user.exportLeft}/3 export</span>`;
+    :`<span id="exportBadge" style="font-size:10px;font-weight:600;padding:3px 9px;border-radius:20px;background:rgba(200,242,97,.1);border:1px solid rgba(200,242,97,.2);color:${user.exportLeft>0?'var(--accent)':'#ff6b6b'}">📤 sisa ${user.exportLeft}/3</span>`;
   document.getElementById('userArea').innerHTML=`
     ${badge}
     <div class="userpill">
