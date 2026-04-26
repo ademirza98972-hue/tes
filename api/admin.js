@@ -1,44 +1,308 @@
-const SUPABASE_URL = 'https://wxxyvijfqzhhkeewvklz.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind4eHl2aWpmcXpoaGtlZXd2a2x6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcxMjI3MTAsImV4cCI6MjA5MjY5ODcxMH0.aoocrLIEFMN7b511CO9NyFUcLzVvq5MOzf0RMdezu0c';
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Nova Audio — Admin</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'Inter',sans-serif;background:#f4f4f5;color:#111;min-height:100vh}
 
-module.exports = async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-  if (req.method === 'OPTIONS') return res.status(200).end();
-  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+    /* GATE */
+    #gate{position:fixed;inset:0;background:#f4f4f5;z-index:999;display:flex;align-items:center;justify-content:center}
+    .gate-box{background:#fff;border-radius:16px;border:1px solid #e8e8e8;padding:36px;max-width:360px;width:90%;text-align:center}
+    .gate-box h2{font-size:18px;font-weight:800;margin-bottom:6px}
+    .gate-box p{font-size:12px;color:#9ca3af;margin-bottom:20px}
+    .gate-input{width:100%;padding:10px 14px;border-radius:8px;border:1px solid #e4e4e7;font-size:13px;font-family:'JetBrains Mono',monospace;outline:none;margin-bottom:10px;text-align:center;letter-spacing:2px}
+    .gate-input:focus{border-color:#16a34a}
+    .gate-btn{width:100%;padding:11px;border-radius:8px;border:none;background:#16a34a;color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif}
+    .gate-btn:hover{background:#15803d}
+    .gate-err{font-size:12px;color:#dc2626;margin-top:8px;display:none}
 
-  // Parse body manually jika belum terparsing
-  let body = req.body;
-  if (typeof body === 'string') {
-    try { body = JSON.parse(body); } catch { return res.status(400).json({ error: 'Invalid JSON' }); }
-  }
-  if (!body) return res.status(400).json({ error: 'Empty body' });
+    /* ADMIN */
+    #adminPanel{display:none}
+    .topbar{display:flex;align-items:center;justify-content:space-between;padding:13px 28px;border-bottom:1px solid #e8e8e8;background:#fff}
+    .logo{font-size:15px;font-weight:700}.logo em{color:#16a34a;font-style:normal}
+    .badge{background:#fee2e2;border:1px solid #fecaca;color:#dc2626;font-size:10px;font-weight:700;padding:4px 10px;border-radius:20px;font-family:'JetBrains Mono',monospace}
+    .wrap{max-width:800px;margin:32px auto;padding:0 20px}
+    .card{background:#fff;border-radius:16px;border:1px solid #e8e8e8;padding:24px;margin-bottom:20px}
+    .card h2{font-size:14px;font-weight:700;margin-bottom:16px;color:#374151}
+    .form-row{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap}
+    input[type=text],input[type=password],select{padding:9px 14px;border-radius:8px;border:1px solid #e4e4e7;font-size:13px;font-family:'Inter',sans-serif;outline:none;flex:1;min-width:180px}
+    input[type=text]:focus,input[type=password]:focus,select:focus{border-color:#16a34a}
+    .btn{padding:9px 20px;border-radius:8px;border:none;font-size:13px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;transition:all .2s;white-space:nowrap}
+    .btn-green{background:#16a34a;color:#fff}.btn-green:hover{background:#15803d}
+    .btn-red{background:#dc2626;color:#fff}.btn-red:hover{background:#b91c1c}
+    .btn-gray{background:#f4f4f5;color:#555;border:1px solid #e4e4e7}.btn-gray:hover{background:#e5e5e5}
+    .msg{padding:10px 14px;border-radius:8px;font-size:12px;font-weight:600;margin-top:10px;display:none;font-family:'JetBrains Mono',monospace}
+    .msg.ok{background:#f0fdf4;border:1px solid #bbf7d0;color:#15803d}
+    .msg.err{background:#fef2f2;border:1px solid #fecaca;color:#dc2626}
+    table{width:100%;border-collapse:collapse}
+    th{text-align:left;font-size:10px;font-weight:700;color:#9ca3af;letter-spacing:1px;text-transform:uppercase;padding:8px 12px;border-bottom:1px solid #f0f0f0;font-family:'JetBrains Mono',monospace}
+    td{padding:10px 12px;font-size:13px;border-bottom:1px solid #f9f9f9;vertical-align:middle}
+    .pill{display:inline-block;padding:3px 10px;border-radius:20px;font-size:10px;font-weight:700;font-family:'JetBrains Mono',monospace}
+    .pill.premium{background:#f0fdf4;color:#15803d;border:1px solid #bbf7d0}
+    .pill.free{background:#f4f4f5;color:#9ca3af;border:1px solid #e4e4e7}
+    .avatar{width:28px;height:28px;border-radius:50%;margin-right:8px;vertical-align:middle}
+    .empty{text-align:center;padding:32px;color:#9ca3af;font-size:13px}
+  </style>
+</head>
+<body>
 
-  const { secret, userId, action } = body;
-  const ADMIN_SECRET = process.env.ADMIN_SECRET;
+<!-- PASSWORD GATE -->
+<div id="gate">
+  <div class="gate-box">
+    <div style="font-size:32px;margin-bottom:12px">🔐</div>
+    <h2>Admin Access</h2>
+    <p>Masukkan admin secret untuk melanjutkan</p>
+    <input type="password" class="gate-input" id="gateInput" placeholder="••••••••" onkeydown="if(event.key==='Enter')checkGate()">
+    <button class="gate-btn" onclick="checkGate()">Masuk</button>
+    <div class="gate-err" id="gateErr">❌ Secret salah!</div>
+  </div>
+</div>
 
-  if (!ADMIN_SECRET) return res.status(500).json({ error: 'ADMIN_SECRET not configured' });
-  if (secret !== ADMIN_SECRET) return res.status(403).json({ error: 'Unauthorized' });
-  if (!userId || !action) return res.status(400).json({ error: 'Missing userId or action' });
+<!-- ADMIN PANEL -->
+<div id="adminPanel">
+  <div class="topbar">
+    <div class="logo">Nova<em>.Audio</em></div>
+    <div class="badge">🔐 Admin Panel</div>
+  </div>
+  <div class="wrap">
+    <div class="card">
+      <h2>✅ Aktivasi / Nonaktifkan Premium</h2>
+      <div class="form-row">
+        <input type="text" id="userId" placeholder="Discord User ID">
+        <select id="action">
+          <option value="activate">✅ Aktifkan Premium</option>
+          <option value="deactivate">❌ Nonaktifkan Premium</option>
+        </select>
+        <button class="btn btn-green" onclick="doAdmin()">Jalankan</button>
+      </div>
+      <div class="msg" id="adminMsg"></div>
+    </div>
 
-  const isPremium = action === 'activate';
+    <div class="card">
+      <h2>👥 Semua User</h2>
+      <div class="form-row" style="margin-bottom:12px">
+        <button class="btn btn-gray" onclick="loadUsers()">🔄 Load Users</button>
+      </div>
+      <div id="userTable"><div class="empty">Klik Load Users untuk melihat data</div></div>
+    </div>
+  </div>
+</div>
 
-  const patchRes = await fetch(`${SUPABASE_URL}/rest/v1/users?id=eq.${userId}`, {
-    method: 'PATCH',
-    headers: {
-      'apikey': SUPABASE_KEY,
-      'Authorization': `Bearer ${SUPABASE_KEY}`,
-      'Content-Type': 'application/json',
-      'Prefer': 'return=representation',
-    },
-    body: JSON.stringify({ is_premium: isPremium }),
+<script>
+let adminSecret = '';
+
+function checkGate(){
+  const val = document.getElementById('gateInput').value.trim();
+  if(!val){ document.getElementById('gateErr').style.display='block'; return; }
+
+  // Verifikasi secret ke server
+  fetch('/api/users?secret='+encodeURIComponent(val))
+    .then(r => {
+      if(r.ok){
+        adminSecret = val;
+        document.getElementById('gate').style.display = 'none';
+        document.getElementById('adminPanel').style.display = 'block';
+        loadUsers();
+      } else {
+        document.getElementById('gateErr').style.display = 'block';
+        document.getElementById('gateInput').value = '';
+        document.getElementById('gateInput').focus();
+      }
+    })
+    .catch(() => {
+      document.getElementById('gateErr').style.display = 'block';
+    });
+}
+
+async function doAdmin(){
+  const userId = document.getElementById('userId').value.trim();
+  const action = document.getElementById('action').value;
+  const msg = document.getElementById('adminMsg');
+  if(!userId){ showMsg(msg,'⚠ Isi Discord User ID!','err'); return; }
+
+  const res = await fetch('/api/admin', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ secret: adminSecret, userId, action })
   });
-
-  const result = await patchRes.json();
-  if (!result || result.length === 0) {
-    return res.status(404).json({ error: 'User tidak ditemukan di database. Pastikan user sudah pernah login.' });
+  const data = await res.json();
+  if(data.ok){
+    showMsg(msg, `✓ User ${userId} berhasil di-${action==='activate'?'aktifkan':'nonaktifkan'}!`, 'ok');
+    loadUsers();
+  } else {
+    showMsg(msg, '⚠ '+(data.error||'Gagal'), 'err');
   }
+}
 
-  res.status(200).json({ ok: true, userId, isPremium, user: result[0] });
-};
+async function loadUsers(){
+  const res = await fetch('/api/users?secret='+encodeURIComponent(adminSecret));
+  if(!res.ok){ document.getElementById('userTable').innerHTML='<div class="empty">❌ Gagal load data</div>'; return; }
+  const users = await res.json();
+  if(!users.length){ document.getElementById('userTable').innerHTML='<div class="empty">Belum ada user yang terdaftar</div>'; return; }
+
+  let html=`<table><thead><tr><th>User</th><th>Discord ID</th><th>Status</th><th>Export Hari Ini</th><th>Aksi</th></tr></thead><tbody>`;
+  users.forEach(u=>{
+    const avatar = u.avatar
+      ? `https://cdn.discordapp.com/avatars/${u.id}/${u.avatar}.png`
+      : `https://cdn.discordapp.com/embed/avatars/0.png`;
+    html += `<tr>
+      <td><img src="${avatar}" class="avatar"><strong>${u.username}</strong></td>
+      <td style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#9ca3af">${u.id}</td>
+      <td><span class="pill ${u.is_premium?'premium':'free'}">${u.is_premium?'⭐ Premium':'Free'}</span></td>
+      <td style="font-family:'JetBrains Mono',monospace">${u.bypass_count}/3</td>
+      <td>
+        ${u.is_premium
+          ? `<button class="btn btn-red" style="font-size:11px;padding:5px 12px" onclick="quickAction('${u.id}','deactivate')">Nonaktifkan</button>`
+          : `<button class="btn btn-green" style="font-size:11px;padding:5px 12px" onclick="quickAction('${u.id}','activate')">Aktifkan Premium</button>`
+        }
+      </td>
+    </tr>`;
+  });
+  html += `</tbody></table>`;
+  document.getElementById('userTable').innerHTML = html;
+}
+
+async function quickAction(userId, action){
+  const res = await fetch('/api/admin', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ secret: adminSecret, userId, action })
+  });
+  const data = await res.json();
+  if(data.ok) loadUsers();
+  else alert('Error: '+(data.error||'Gagal'));
+}
+
+function showMsg(el, text, type){
+  el.textContent=text; el.className='msg '+type; el.style.display='block';
+  setTimeout(()=>el.style.display='none', 4000);
+}
+
+// Auto focus input gate
+document.getElementById('gateInput').focus();
+</script>
+</body>
+</html>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'Inter',sans-serif;background:#f4f4f5;color:#111;min-height:100vh}
+    .topbar{background:#fff;border-bottom:1px solid #e8e8e8;padding:13px 28px;display:flex;align-items:center;justify-content:space-between}
+    .logo{font-size:15px;font-weight:700}.logo em{color:#16a34a;font-style:normal}
+    .badge{background:#fee2e2;border:1px solid #fecaca;color:#dc2626;font-size:10px;font-weight:700;padding:4px 10px;border-radius:20px;font-family:'JetBrains Mono',monospace}
+    .wrap{max-width:800px;margin:32px auto;padding:0 20px}
+    .card{background:#fff;border-radius:16px;border:1px solid #e8e8e8;padding:24px;margin-bottom:20px}
+    .card h2{font-size:14px;font-weight:700;margin-bottom:16px;color:#374151}
+    .form-row{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap}
+    input,select{padding:9px 14px;border-radius:8px;border:1px solid #e4e4e7;font-size:13px;font-family:'Inter',sans-serif;outline:none;flex:1;min-width:180px}
+    input:focus,select:focus{border-color:#16a34a}
+    input[type=password]{font-family:'JetBrains Mono',monospace}
+    .btn{padding:9px 20px;border-radius:8px;border:none;font-size:13px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;transition:all .2s;white-space:nowrap}
+    .btn-green{background:#16a34a;color:#fff}.btn-green:hover{background:#15803d}
+    .btn-red{background:#dc2626;color:#fff}.btn-red:hover{background:#b91c1c}
+    .btn-gray{background:#f4f4f5;color:#555;border:1px solid #e4e4e7}.btn-gray:hover{background:#e5e5e5}
+    .msg{padding:10px 14px;border-radius:8px;font-size:12px;font-weight:600;margin-top:10px;display:none;font-family:'JetBrains Mono',monospace}
+    .msg.ok{background:#f0fdf4;border:1px solid #bbf7d0;color:#15803d}
+    .msg.err{background:#fef2f2;border:1px solid #fecaca;color:#dc2626}
+    table{width:100%;border-collapse:collapse}
+    th{text-align:left;font-size:10px;font-weight:700;color:#9ca3af;letter-spacing:1px;text-transform:uppercase;padding:8px 12px;border-bottom:1px solid #f0f0f0;font-family:'JetBrains Mono',monospace}
+    td{padding:10px 12px;font-size:13px;border-bottom:1px solid #f9f9f9;vertical-align:middle}
+    .pill{display:inline-block;padding:3px 10px;border-radius:20px;font-size:10px;font-weight:700;font-family:'JetBrains Mono',monospace}
+    .pill.premium{background:#f0fdf4;color:#15803d;border:1px solid #bbf7d0}
+    .pill.free{background:#f4f4f5;color:#9ca3af;border:1px solid #e4e4e7}
+    .avatar{width:28px;height:28px;border-radius:50%;margin-right:8px;vertical-align:middle}
+    .empty{text-align:center;padding:32px;color:#9ca3af;font-size:13px}
+    .secret-warn{background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:12px 16px;font-size:12px;color:#92400e;margin-bottom:16px}
+  </style>
+</head>
+<body>
+<div class="topbar">
+  <div class="logo">Nova<em>.Audio</em></div>
+  <div class="badge">🔐 Admin Panel</div>
+</div>
+<div class="wrap">
+
+  <div class="card">
+    <h2>🔑 Aktivasi / Nonaktifkan Premium</h2>
+    <div class="secret-warn">⚠️ Masukkan Admin Secret setiap kali melakukan aksi. Jangan share halaman ini ke siapapun.</div>
+    <div class="form-row">
+      <input type="password" id="secret" placeholder="Admin Secret...">
+      <input type="text" id="userId" placeholder="Discord User ID (misal: 123456789)">
+      <select id="action">
+        <option value="activate">✅ Aktifkan Premium</option>
+        <option value="deactivate">❌ Nonaktifkan Premium</option>
+      </select>
+      <button class="btn btn-green" onclick="doAdmin()">Jalankan</button>
+    </div>
+    <div class="msg" id="adminMsg"></div>
+  </div>
+
+  <div class="card">
+    <h2>👥 Semua User</h2>
+    <div class="form-row" style="margin-bottom:12px">
+      <input type="password" id="secret2" placeholder="Admin Secret untuk load data...">
+      <button class="btn btn-gray" onclick="loadUsers()">Load Users</button>
+    </div>
+    <div id="userTable"><div class="empty">Masukkan admin secret dan klik Load Users</div></div>
+  </div>
+
+</div>
+<script>
+async function doAdmin(){
+  const secret=document.getElementById('secret').value.trim();
+  const userId=document.getElementById('userId').value.trim();
+  const action=document.getElementById('action').value;
+  const msg=document.getElementById('adminMsg');
+  if(!secret||!userId){showMsg(msg,'⚠ Isi semua field!','err');return;}
+  const res=await fetch('/api/admin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({secret,userId,action})});
+  const data=await res.json();
+  if(data.ok){
+    showMsg(msg,`✓ User ${userId} berhasil di-${action==='activate'?'aktifkan':'nonaktifkan'}!`,'ok');
+  } else {
+    showMsg(msg,'⚠ '+( data.error||'Gagal'),'err');
+  }
+}
+
+async function loadUsers(){
+  const secret=document.getElementById('secret2').value.trim();
+  if(!secret){alert('Masukkan admin secret dulu!');return;}
+  const res=await fetch('/api/users?secret='+encodeURIComponent(secret));
+  if(!res.ok){document.getElementById('userTable').innerHTML='<div class="empty">❌ Secret salah atau error</div>';return;}
+  const users=await res.json();
+  if(!users.length){document.getElementById('userTable').innerHTML='<div class="empty">Belum ada user yang terdaftar</div>';return;}
+  let html=`<table><thead><tr><th>User</th><th>Discord ID</th><th>Status</th><th>Bypass Hari Ini</th><th>Aksi</th></tr></thead><tbody>`;
+  users.forEach(u=>{
+    const avatar=u.avatar?`https://cdn.discordapp.com/avatars/${u.id}/${u.avatar}.png`:`https://cdn.discordapp.com/embed/avatars/0.png`;
+    html+=`<tr>
+      <td><img src="${avatar}" class="avatar"><strong>${u.username}</strong></td>
+      <td style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#9ca3af">${u.id}</td>
+      <td><span class="pill ${u.is_premium?'premium':'free'}">${u.is_premium?'⭐ Premium':'Free'}</span></td>
+      <td style="font-family:'JetBrains Mono',monospace">${u.bypass_count}/3</td>
+      <td>
+        ${u.is_premium
+          ?`<button class="btn btn-red" style="font-size:11px;padding:5px 12px" onclick="quickAction('${u.id}','deactivate')">Nonaktifkan</button>`
+          :`<button class="btn btn-green" style="font-size:11px;padding:5px 12px" onclick="quickAction('${u.id}','activate')">Aktifkan</button>`
+        }
+      </td>
+    </tr>`;
+  });
+  html+=`</tbody></table>`;
+  document.getElementById('userTable').innerHTML=html;
+}
+
+async function quickAction(userId,action){
+  const secret=document.getElementById('secret2').value.trim();
+  if(!secret){alert('Masukkan admin secret dulu!');return;}
+  const res=await fetch('/api/admin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({secret,userId,action})});
+  const data=await res.json();
+  if(data.ok){loadUsers();}
+  else alert('Error: '+(data.error||'Gagal'));
+}
+
+function showMsg(el,text,type){el.textContent=text;el.className='msg '+type;el.style.display='block';setTimeout(()=>el.style.display='none',4000);}
+</script>
+</body>
+</html>
