@@ -155,6 +155,27 @@
 
   <div class="status" id="statusBar"></div>
 
+  <!-- PREMIUM POPUP -->
+  <div id="premiumPopup" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:998;align-items:center;justify-content:center">
+    <div style="background:#fff;border-radius:20px;padding:36px;max-width:400px;width:90%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.15)">
+      <div style="font-size:36px;margin-bottom:12px">🚫</div>
+      <h2 style="font-size:18px;font-weight:800;margin-bottom:8px;color:#111">Limit Export Habis</h2>
+      <p style="font-size:13px;color:#6b7280;margin-bottom:6px">Kamu sudah mencapai batas <strong>3x export/hari</strong> untuk akun gratis.</p>
+      <p style="font-size:13px;color:#6b7280;margin-bottom:24px">Upgrade ke <strong>Premium</strong> untuk export unlimited selamanya!</p>
+      <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:14px;margin-bottom:20px">
+        <div style="font-size:22px;font-weight:900;color:#15803d">Rp 100.000</div>
+        <div style="font-size:12px;color:#16a34a;margin-top:2px;font-weight:600">Sekali bayar · Akses selamanya</div>
+        <div style="font-size:11px;color:#6b7280;margin-top:8px">✓ Export unlimited &nbsp;·&nbsp; ✓ Semua fitur &nbsp;·&nbsp; ✓ Bypass unlimited</div>
+      </div>
+      <a href="https://discord.gg/saNDWMhVt9" target="_blank" style="display:block;background:#5865F2;color:#fff;font-size:14px;font-weight:700;padding:12px;border-radius:10px;text-decoration:none;margin-bottom:10px">
+        💬 Hubungi via Discord untuk Upgrade
+      </a>
+      <button onclick="document.getElementById('premiumPopup').style.display='none'" style="background:none;border:none;color:#9ca3af;font-size:12px;cursor:pointer;font-family:'Inter',sans-serif">
+        Tutup — coba lagi besok
+      </button>
+    </div>
+  </div>
+
   <div class="file-chip-wrap" id="fileTabs">
     <div class="file-chip">
       <svg viewBox="0 0 24 24" style="width:12px;height:12px;fill:#15803d;flex-shrink:0"><path d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3h-6z"/></svg>
@@ -393,8 +414,15 @@ document.getElementById('trimResetBtn').addEventListener('click',()=>{if(!audioB
 const dz=document.getElementById('dropZone');
 dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('over');});
 dz.addEventListener('dragleave',()=>dz.classList.remove('over'));
-dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('over');const f=e.dataTransfer.files[0];if(f)loadFile(f);});
-dz.addEventListener('click',()=>{const i=document.createElement('input');i.type='file';i.accept='audio/*';i.onchange=e=>e.target.files[0]&&loadFile(e.target.files[0]);i.click();});
+dz.addEventListener('drop',e=>{
+  e.preventDefault();dz.classList.remove('over');
+  if(currentUser&&!currentUser.isPremium&&currentUser.exportLeft<=0){showPremiumPopup();return;}
+  const f=e.dataTransfer.files[0];if(f)loadFile(f);
+});
+dz.addEventListener('click',()=>{
+  if(currentUser&&!currentUser.isPremium&&currentUser.exportLeft<=0){showPremiumPopup();return;}
+  const i=document.createElement('input');i.type='file';i.accept='audio/*';i.onchange=e=>e.target.files[0]&&loadFile(e.target.files[0]);i.click();
+});
 
 function updateSliderFill(el,min,max){
   const pct=(el.value-min)/(max-min)*100;
@@ -653,7 +681,6 @@ function applyEqPreset(name){
 }
 async function toggleBypass(){
   if(bypassOn){
-    // Turn off
     bypassOn=false;
     speed=preBspd;pitch=preBpit;
     const btn=document.getElementById('bypassToggle'),st=document.getElementById('bypassStatus');
@@ -682,32 +709,7 @@ async function toggleBypass(){
     return;
   }
 
-  // Cek limit via API
-  try {
-    const res = await fetch('/api/bypass', { method: 'POST' });
-    const data = await res.json();
-    if (!data.ok) {
-      if (data.limitReached) {
-        showStatus('⚠ Limit bypass harian habis (3/3). Upgrade ke Premium untuk unlimited!', 5000);
-        return;
-      }
-      showStatus('⚠ ' + (data.error || 'Gagal'), 3000);
-      return;
-    }
-    // Update badge
-    if (!currentUser?.isPremium && data.bypassLeft !== undefined) {
-      const badge = document.getElementById('bypassBadge');
-      if(badge){
-        badge.textContent = `⚡ ${data.bypassLeft}/3 bypass tersisa`;
-        if(data.bypassLeft===0) badge.style.color='#dc2626';
-      }
-    }
-  } catch(e) {
-    showStatus('⚠ Gagal cek limit, coba lagi', 3000);
-    return;
-  }
-
-  // Apply bypass
+  // Apply bypass — gratis, tidak ada limit
   bypassOn=true;
   preBspd=speed;preBpit=pitch;
   speed=1.06;pitch=2;
@@ -751,8 +753,34 @@ function applyPreset(el,sp,pt,vl){
   }
   updateUI();
 }
+function showPremiumPopup(){
+  document.getElementById('premiumPopup').style.display='flex';
+}
+
 async function doExport(){
-  if(!audioBuffer){showStatus('⚠ load audio first!',2000);return;}
+  if(!audioBuffer){showStatus('⚠ Load audio dulu!',2000);return;}
+
+  // Cek limit export via API
+  if(!currentUser?.isPremium){
+    const limitRes=await fetch('/api/bypass',{method:'POST'});
+    const limitData=await limitRes.json();
+    if(!limitData.ok){
+      if(limitData.limitReached){
+        showPremiumPopup();
+        return;
+      }
+      showStatus('⚠ '+(limitData.error||'Gagal cek limit'),3000);
+      return;
+    }
+    // Update badge
+    const badge=document.getElementById('exportBadge');
+    if(badge){
+      badge.textContent=`📤 ${limitData.exportLeft}/3 export`;
+      if(limitData.exportLeft===0)badge.style.color='#dc2626';
+    }
+    if(currentUser)currentUser.exportLeft=limitData.exportLeft;
+  }
+
   const btn=document.getElementById('exportBtn'),lbl=document.getElementById('exportLbl'),bar=document.getElementById('exportProg');
   btn.disabled=true;lbl.textContent='Rendering...';bar.style.width='10%';showStatus('⏳ rendering...');
   try{
@@ -846,7 +874,11 @@ async function initAuth() {
 
     currentUser = data;
     document.getElementById('loginGate').style.display = 'none';
-    renderUserArea(data);  } catch(e) {
+    renderUserArea(data);
+    // Cek limit saat halaman dibuka
+    if(!data.isPremium && data.exportLeft <= 0){
+      showPremiumPopup();
+    }  } catch(e) {
     document.getElementById('loginGate').style.display = 'flex';
   }
 }
@@ -858,7 +890,7 @@ function renderUserArea(user) {
 
   const bypassInfo = user.isPremium
     ? `<span style="font-size:10px;font-weight:700;color:#15803d;background:#dcfce7;border:1px solid #bbf7d0;padding:3px 10px;border-radius:20px;font-family:'JetBrains Mono',monospace">⭐ Premium</span>`
-    : `<span id="bypassBadge" style="font-size:10px;font-weight:700;color:#d97706;background:#fef3c7;border:1px solid #fde68a;padding:3px 10px;border-radius:20px;font-family:'JetBrains Mono',monospace">⚡ ${user.bypassLeft}/3 bypass tersisa</span>`;
+    : `<span id="exportBadge" style="font-size:10px;font-weight:700;color:${user.exportLeft>0?'#d97706':'#dc2626'};background:${user.exportLeft>0?'#fef3c7':'#fef2f2'};border:1px solid ${user.exportLeft>0?'#fde68a':'#fecaca'};padding:3px 10px;border-radius:20px;font-family:'JetBrains Mono',monospace">📤 ${user.exportLeft}/3 export</span>`;
 
   document.getElementById('userArea').innerHTML = `
     ${bypassInfo}
