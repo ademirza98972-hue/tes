@@ -189,21 +189,47 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:13px;heigh
   </div>
 </div>
 
-<!-- PREMIUM POPUP -->
+<!-- PREMIUM POPUP (ajakan upgrade) -->
 <div class="gate" id="premiumPopup">
+  <div class="gate-box">
+    <div style="font-size:40px;margin-bottom:14px">⭐</div>
+    <h2>Upgrade ke Premium</h2>
+    <p>Dapatkan akses penuh tanpa batas ke semua fitur Nova Audio Studio.</p>
+    <div style="background:rgba(200,242,97,.06);border:1px solid rgba(200,242,97,.15);border-radius:12px;padding:16px;margin:16px 0;text-align:left">
+      <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">Yang kamu dapat:</div>
+      <div style="font-size:13px;color:var(--text);line-height:2">
+        ✓ Export <strong style="color:var(--accent)">unlimited</strong> setiap hari<br>
+        ✓ Auto Bypass <strong style="color:var(--accent)">unlimited</strong><br>
+        ✓ Semua fitur tanpa batasan<br>
+        ✓ Akses selamanya
+      </div>
+      <div style="margin-top:14px;padding-top:12px;border-top:1px solid rgba(200,242,97,.1);text-align:center">
+        <div style="font-size:26px;font-weight:700;color:var(--accent)">Rp 100.000</div>
+        <div style="font-size:11px;color:rgba(200,242,97,.5);margin-top:2px">Sekali bayar · Akses selamanya</div>
+      </div>
+    </div>
+    <a href="https://discord.gg/saNDWMhVt9" target="_blank" class="discord-btn" style="width:100%;justify-content:center;padding:11px;font-size:13px">
+      💬 Hubungi Admin di Discord
+    </a>
+    <button onclick="document.getElementById('premiumPopup').style.display='none'" style="background:none;border:none;color:var(--muted);font-size:12px;cursor:pointer;margin-top:12px;font-family:'Sora',sans-serif">Tutup</button>
+  </div>
+</div>
+
+<!-- LIMIT POPUP (export habis) -->
+<div class="gate" id="limitPopup">
   <div class="gate-box">
     <div style="font-size:40px;margin-bottom:14px">🚫</div>
     <h2>Limit Export Habis</h2>
     <p>Kamu sudah mencapai batas <strong style="color:var(--text)">3x export/hari</strong> untuk akun gratis.</p>
     <div style="background:rgba(200,242,97,.06);border:1px solid rgba(200,242,97,.15);border-radius:12px;padding:16px;margin:16px 0">
-      <div class="premium-price">Rp 100.000</div>
-      <div class="premium-sub">Sekali bayar · Akses selamanya</div>
-      <div class="premium-features">✓ Export unlimited &nbsp;·&nbsp; ✓ Bypass unlimited<br>✓ Semua fitur tanpa batas</div>
+      <div style="font-size:26px;font-weight:700;color:var(--accent)">Rp 100.000</div>
+      <div style="font-size:11px;color:rgba(200,242,97,.5);margin-top:2px;font-weight:500">Sekali bayar · Akses selamanya</div>
+      <div style="font-size:12px;color:var(--muted);margin-top:8px;line-height:1.6">✓ Export unlimited &nbsp;·&nbsp; ✓ Bypass unlimited<br>✓ Semua fitur tanpa batas</div>
     </div>
     <a href="https://discord.gg/saNDWMhVt9" target="_blank" class="discord-btn" style="width:100%;justify-content:center;padding:11px;font-size:13px">
-      💬 Hubungi via Discord untuk Upgrade
+      💬 Hubungi Admin di Discord untuk Upgrade
     </a>
-    <button onclick="document.getElementById('premiumPopup').style.display='none'" style="background:none;border:none;color:var(--muted);font-size:12px;cursor:pointer;margin-top:12px;font-family:'Sora',sans-serif">Tutup — coba lagi besok</button>
+    <button onclick="document.getElementById('limitPopup').style.display='none'" style="background:none;border:none;color:var(--muted);font-size:12px;cursor:pointer;margin-top:12px;font-family:'Sora',sans-serif">Tutup — coba lagi besok</button>
   </div>
 </div>
 
@@ -223,9 +249,9 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:13px;heigh
   <div class="nav">
     <div class="nav-section">
       <div class="nav-label">Workspace</div>
-      <div class="nav-item active"><span class="nav-ic">♪</span> Studio</div>
-      <div class="nav-item"><span class="nav-ic">⚡</span> Auto Bypass</div>
-      <div class="nav-item"><span class="nav-ic">◈</span> Presets</div>
+      <div class="nav-item active" onclick="scrollToSection('processor')"><span class="nav-ic">♪</span> Studio</div>
+      <div class="nav-item" onclick="toggleBypass()"><span class="nav-ic">⚡</span> Auto Bypass</div>
+      <div class="nav-item" onclick="scrollToSection('presets')"><span class="nav-ic">◈</span> Presets</div>
     </div>
     <div class="nav-divider"></div>
     <div class="nav-section">
@@ -284,7 +310,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:13px;heigh
     <div class="right-body">
 
       <!-- BYPASS -->
-      <div class="bypass-card">
+      <div class="bypass-card" id="section-bypass">
         <div>
           <div class="bp-title">⚡ Roblox Bypass</div>
           <div class="bp-sub">speed · pitch · EQ · reverb · chorus</div>
@@ -293,7 +319,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:13px;heigh
       </div>
 
       <!-- PROCESSOR -->
-      <div class="ctrl-group">
+      <div class="ctrl-group" id="section-processor">
         <div class="cg-lbl">Processor</div>
         <div class="ctrl"><div class="ctr"><span class="clbl">Speed</span><span class="cval" id="spdVal">1.00x</span></div><input type="range" id="spdSlider" min="25" max="200" value="100" step="1"></div>
         <div class="ctrl"><div class="ctr"><span class="clbl">Pitch</span><span class="cval" id="pitVal">+0st</span></div><input type="range" id="pitSlider" min="-12" max="12" value="0" step="1"></div>
@@ -335,7 +361,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:13px;heigh
       </div>
 
       <!-- PRESETS -->
-      <div class="ctrl-group">
+      <div class="ctrl-group" id="section-presets">
         <div class="cg-lbl">Presets</div>
         <div class="pgrid">
           <div class="pr" data-sp="1.25" data-pt="3" data-vl="100">Nightcore</div>
@@ -431,8 +457,8 @@ document.querySelectorAll('.fmt').forEach(b=>b.addEventListener('click',()=>{fmt
 const dz=document.getElementById('dropZone');
 dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('over');});
 dz.addEventListener('dragleave',()=>dz.classList.remove('over'));
-dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('over');if(currentUser&&!currentUser.isPremium&&currentUser.exportLeft<=0){showPremiumPopup();return;}const f=e.dataTransfer.files[0];if(f)loadFile(f);});
-dz.addEventListener('click',()=>{if(currentUser&&!currentUser.isPremium&&currentUser.exportLeft<=0){showPremiumPopup();return;}const i=document.createElement('input');i.type='file';i.accept='audio/*';i.onchange=e=>e.target.files[0]&&loadFile(e.target.files[0]);i.click();});
+dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('over');if(currentUser&&!currentUser.isPremium&&currentUser.exportLeft<=0){showLimitPopup();return;}const f=e.dataTransfer.files[0];if(f)loadFile(f);});
+dz.addEventListener('click',()=>{if(currentUser&&!currentUser.isPremium&&currentUser.exportLeft<=0){showLimitPopup();return;}const i=document.createElement('input');i.type='file';i.accept='audio/*';i.onchange=e=>e.target.files[0]&&loadFile(e.target.files[0]);i.click();});
 
 function updateSliderFill(el,min,max){const pct=(el.value-min)/(max-min)*100;el.style.background=`linear-gradient(to right,var(--accent) ${pct}%,var(--s3) ${pct}%)`;}
 function initSliders(){document.querySelectorAll('input[type=range]:not(.eq-slider)').forEach(el=>{const min=parseFloat(el.min)||0,max=parseFloat(el.max)||100;updateSliderFill(el,min,max);el.addEventListener('input',()=>updateSliderFill(el,min,max));});}
@@ -452,6 +478,12 @@ function ft(s){s=Math.floor(s||0);return Math.floor(s/60)+':'+(s%60+'').padStart
 function setTime(t){document.getElementById('waveTime').textContent=t.split('/')[0].trim();document.getElementById('waveDur').textContent='/ '+t.split('/')[1].trim();}
 function showStatus(msg,dur){const s=document.getElementById('statusBar');s.textContent=msg;s.style.display='block';if(dur)setTimeout(()=>s.style.display='none',dur);}
 function showPremiumPopup(){document.getElementById('premiumPopup').style.display='flex';}
+function showLimitPopup(){document.getElementById('limitPopup').style.display='flex';}
+function scrollToSection(name){
+  const el=document.getElementById('section-'+name);
+  if(el){el.scrollIntoView({behavior:'smooth',block:'start'});}
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+}
 
 function buildAndRender(){
   if(!audioBuffer)return;
@@ -656,7 +688,7 @@ async function doExport(){
   if(!audioBuffer){showStatus('⚠ Load audio dulu!',2000);return;}
   if(!currentUser?.isPremium){
     const lr=await fetch('/api/bypass',{method:'POST'});const ld=await lr.json();
-    if(!ld.ok){if(ld.limitReached){showPremiumPopup();return;}showStatus('⚠ '+(ld.error||'Gagal'),3000);return;}
+    if(!ld.ok){if(ld.limitReached){showLimitPopup();return;}showStatus('⚠ '+(ld.error||'Gagal'),3000);return;}
     const badge=document.getElementById('exportBadge');
     if(badge){badge.textContent=`📤 ${ld.exportLeft}/3 export`;if(ld.exportLeft===0)badge.style.color='#ff6b6b';}
     if(currentUser)currentUser.exportLeft=ld.exportLeft;
@@ -724,7 +756,7 @@ async function initAuth(){
     currentUser=data;
     document.getElementById('loginGate').style.display='none';
     renderUserArea(data);
-    if(!data.isPremium&&data.exportLeft<=0)showPremiumPopup();
+    if(!data.isPremium&&data.exportLeft<=0)showLimitPopup();
   }catch(e){document.getElementById('loginGate').style.display='flex';}
 }
 
