@@ -1,7 +1,8 @@
-const SUPABASE_URL = 'https://wxxyvijfqzhhkeewvklz.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind4eHl2aWpmcXpoaGtlZXd2a2x6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcxMjI3MTAsImV4cCI6MjA5MjY5ODcxMH0.aoocrLIEFMN7b511CO9NyFUcLzVvq5MOzf0RMdezu0c';
-const CLIENT_ID = '1497802915585200159';
-const CLIENT_SECRET = 'BqxBXOaMa5eyZsEI18W4pKrv2UBfSfXB';
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_KEY = process.env.SUPABASE_KEY;
+const CLIENT_ID = process.env.DISCORD_CLIENT_ID;
+const CLIENT_SECRET = process.env.DISCORD_CLIENT_SECRET;
+const DISCORD_INVITE = 'https://discord.gg/saNDWMhVt9';
 
 module.exports = async function handler(req, res) {
   const { code } = req.query;
@@ -10,7 +11,6 @@ module.exports = async function handler(req, res) {
   const REDIRECT_URI = `https://${req.headers.host}/api/callback`;
 
   try {
-    // 1. Tukar code → access token
     const tokenRes = await fetch('https://discord.com/api/oauth2/token', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -25,14 +25,12 @@ module.exports = async function handler(req, res) {
     const tokenData = await tokenRes.json();
     if (!tokenData.access_token) return res.redirect('/?error=token_failed');
 
-    // 2. Ambil info user
     const userRes = await fetch('https://discord.com/api/users/@me', {
       headers: { Authorization: `Bearer ${tokenData.access_token}` },
     });
     const user = await userRes.json();
     if (!user.id) return res.redirect('/?error=user_failed');
 
-    // 3. Simpan user ke Supabase
     await fetch(`${SUPABASE_URL}/rest/v1/users`, {
       method: 'POST',
       headers: {
@@ -49,14 +47,13 @@ module.exports = async function handler(req, res) {
       }),
     });
 
-    // 4. Set cookie & langsung balik ke website
     const session = Buffer.from(JSON.stringify({
       id: user.id,
       username: user.username,
       avatar: user.avatar,
     })).toString('base64');
 
-    res.setHeader('Set-Cookie', `nova_session=${session}; Path=/; HttpOnly; Max-Age=2592000; SameSite=Lax`);
+    res.setHeader('Set-Cookie', `nova_session=${session}; Path=/; HttpOnly; Secure; Max-Age=2592000; SameSite=Lax`);
     res.redirect('/');
   } catch (err) {
     console.error(err);
