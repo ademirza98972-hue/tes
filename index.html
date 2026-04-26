@@ -775,15 +775,35 @@ function encodeMP3(buf){return new Promise((res,rej)=>{try{if(typeof lamejs==='u
 function encodeWAV(buf){const nc=buf.numberOfChannels,sr=buf.sampleRate,ns=buf.length,ba=nc*2,ds=ns*ba;const ab=new ArrayBuffer(44+ds),v=new DataView(ab);const ws=(o,s)=>{for(let i=0;i<s.length;i++)v.setUint8(o+i,s.charCodeAt(i));};ws(0,'RIFF');v.setUint32(4,36+ds,true);ws(8,'WAVE');ws(12,'fmt ');v.setUint32(16,16,true);v.setUint16(20,1,true);v.setUint16(22,nc,true);v.setUint32(24,sr,true);v.setUint32(28,sr*ba,true);v.setUint16(32,ba,true);v.setUint16(34,16,true);ws(36,'data');v.setUint32(40,ds,true);const chs=[];for(let c=0;c<nc;c++)chs.push(buf.getChannelData(c));let off=44;for(let i=0;i<ns;i++)for(let c=0;c<nc;c++){const s=Math.max(-1,Math.min(1,chs[c][i]));v.setInt16(off,s<0?s*0x8000:s*0x7FFF,true);off+=2;}return ab;}
 function loadFile(file){
   origFileName=file.name;
-  document.getElementById('fileTabs').style.display='block';
+  console.log('loadFile called:', file.name);
+  
+  const mainUI = document.getElementById('mainUI');
+  const fileTabs = document.getElementById('fileTabs');
+  
+  fileTabs.style.display='block';
+  fileTabs.style.visibility='visible';
+  mainUI.style.display='block';
+  mainUI.style.visibility='visible';
+  mainUI.style.opacity='1';
+  mainUI.style.height='auto';
+  mainUI.style.overflow='visible';
+  
   document.getElementById('fileName').textContent=file.name.length>36?file.name.slice(0,36)+'...':file.name;
   document.getElementById('fileCount').textContent='1 file';
   document.getElementById('waveLabel').textContent=file.name.length>40?file.name.slice(0,40)+'...':file.name;
-  document.getElementById('mainUI').style.display='block';
   document.getElementById('loginGate').style.display='none';
+  
+  console.log('mainUI display:', mainUI.style.display);
   initWaveEvents();
   showStatus('⏳ decoding audio...');
-  const reader=new FileReader();reader.onload=async e=>{rawBuf=e.target.result;await setupTone(rawBuf);};reader.readAsArrayBuffer(file);
+  const reader=new FileReader();
+  reader.onload=async e=>{
+    rawBuf=e.target.result;
+    console.log('File read OK, size:', rawBuf.byteLength);
+    await setupTone(rawBuf);
+  };
+  reader.onerror=e=>console.error('FileReader error:', e);
+  reader.readAsArrayBuffer(file);
 }
 function resetApp(){
   if(isPlaying)_pausePb();if(player)player.dispose();
