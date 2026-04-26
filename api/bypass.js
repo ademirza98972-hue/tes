@@ -10,7 +10,6 @@ function parseCookie(str) {
   return obj;
 }
 
-// Rate limiter
 const rateLimitMap = new Map();
 function rateLimit(ip, max=10, windowMs=60000) {
   const now = Date.now();
@@ -42,10 +41,26 @@ module.exports = async function handler(req, res) {
     const user = users?.[0];
     if (!user) return res.status(401).json({ error: 'User not found' });
 
-    if (user.is_premium) return res.status(200).json({ ok: true, isPremium: true, exportLeft: 999 });
+    // Cek plan & expiry
+    const now = new Date();
+    let plan = user.plan || 'free';
+    if (plan !== 'free' && user.plan_expiry && now > new Date(user.plan_expiry)) {
+      plan = 'free';
+      await fetch(`${SUPABASE_URL}/rest/v1/users?id=eq.${user.id}`, {
+        method: 'PATCH',
+        headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plan: 'free', plan_expiry: null }),
+      });
+    }
 
+    // Basic & Premium = unlimited
+    if (plan === 'basic' || plan === 'premium') {
+      return res.status(200).json({ ok: true, plan, exportLeft: 999 });
+    }
+
+    // Free = 3x/hari
     const today = new Date().toISOString().split('T')[0];
-    let count = user.bypass_count;
+    let count = user.bypass_count || 0;
     if (user.bypass_reset_date !== today) {
       count = 0;
       await fetch(`${SUPABASE_URL}/rest/v1/users?id=eq.${user.id}`, {
@@ -63,7 +78,7 @@ module.exports = async function handler(req, res) {
       body: JSON.stringify({ bypass_count: count + 1, bypass_reset_date: today }),
     });
 
-    res.status(200).json({ ok: true, exportUsed: count + 1, exportLeft: 3 - (count + 1) });
+    res.status(200).json({ ok: true, plan: 'free', exportUsed: count + 1, exportLeft: 3 - (count + 1) });
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
   }
