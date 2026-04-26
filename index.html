@@ -114,7 +114,7 @@
   </div>
 
   <!-- LOGIN GATE -->
-  <div id="loginGate" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:999;display:flex;align-items:center;justify-content:center">
+  <div id="loginGate" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:999;align-items:center;justify-content:center">
     <div style="background:#fff;border-radius:20px;padding:40px 36px;max-width:420px;width:90%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.15)">
       <div style="width:56px;height:56px;background:#16a34a;border-radius:16px;display:flex;align-items:center;justify-content:center;margin:0 auto 20px">
         <svg width="28" height="28" viewBox="0 0 24 24" fill="#fff"><path d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3h-6z"/></svg>
@@ -774,6 +774,7 @@ function loadFile(file){
   document.getElementById('fileCount').textContent='1 file';
   document.getElementById('waveLabel').textContent=file.name.length>40?file.name.slice(0,40)+'...':file.name;
   document.getElementById('mainUI').style.display='block';
+  document.getElementById('loginGate').style.display='none';
   showStatus('⏳ decoding audio...');
   const reader=new FileReader();reader.onload=async e=>{rawBuf=e.target.result;await setupTone(rawBuf);};reader.readAsArrayBuffer(file);
 }
@@ -818,8 +819,7 @@ async function initAuth() {
 
     currentUser = data;
     document.getElementById('loginGate').style.display = 'none';
-    renderUserArea(data);
-  } catch(e) {
+    renderUserArea(data);  } catch(e) {
     document.getElementById('loginGate').style.display = 'flex';
   }
 }
