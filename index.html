@@ -191,21 +191,22 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:13px;heigh
 
 <!-- PREMIUM POPUP (ajakan upgrade) -->
 <div class="gate" id="premiumPopup">
-  <div class="gate-box">
-    <div style="font-size:40px;margin-bottom:14px">⭐</div>
-    <h2>Upgrade ke Premium</h2>
-    <p>Dapatkan akses penuh tanpa batas ke semua fitur Nova Audio Studio.</p>
-    <div style="background:rgba(200,242,97,.06);border:1px solid rgba(200,242,97,.15);border-radius:12px;padding:16px;margin:16px 0;text-align:left">
-      <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">Yang kamu dapat:</div>
-      <div style="font-size:13px;color:var(--text);line-height:2">
-        ✓ Export <strong style="color:var(--accent)">unlimited</strong> setiap hari<br>
-        ✓ Auto Bypass <strong style="color:var(--accent)">unlimited</strong><br>
-        ✓ Semua fitur tanpa batasan<br>
-        ✓ Akses selamanya
+  <div class="gate-box" style="max-width:460px">
+    <div style="font-size:36px;margin-bottom:12px">⭐</div>
+    <h2>Upgrade Nova Audio</h2>
+    <p>Pilih paket yang sesuai kebutuhanmu.</p>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:16px 0">
+      <div style="background:rgba(59,130,246,.08);border:1px solid rgba(59,130,246,.25);border-radius:12px;padding:14px;text-align:left">
+        <div style="font-size:11px;font-weight:700;color:#60a5fa;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">⚡ Basic</div>
+        <div style="font-size:22px;font-weight:700;color:var(--text)">Rp 45.000</div>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:10px">per minggu</div>
+        <div style="font-size:12px;color:#999;line-height:1.8">✓ Export unlimited<br>✓ Semua fitur</div>
       </div>
-      <div style="margin-top:14px;padding-top:12px;border-top:1px solid rgba(200,242,97,.1);text-align:center">
-        <div style="font-size:26px;font-weight:700;color:var(--accent)">Rp 100.000</div>
-        <div style="font-size:11px;color:rgba(200,242,97,.5);margin-top:2px">Sekali bayar · Akses selamanya</div>
+      <div style="background:rgba(200,242,97,.06);border:1px solid rgba(200,242,97,.2);border-radius:12px;padding:14px;text-align:left">
+        <div style="font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">⭐ Premium</div>
+        <div style="font-size:22px;font-weight:700;color:var(--text)">Rp 100.000</div>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:10px">per bulan</div>
+        <div style="font-size:12px;color:#999;line-height:1.8">✓ Export unlimited<br>✓ Semua fitur</div>
       </div>
     </div>
     <a href="https://discord.gg/saNDWMhVt9" target="_blank" class="discord-btn" style="width:100%;justify-content:center;padding:11px;font-size:13px">
@@ -457,8 +458,8 @@ document.querySelectorAll('.fmt').forEach(b=>b.addEventListener('click',()=>{fmt
 const dz=document.getElementById('dropZone');
 dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('over');});
 dz.addEventListener('dragleave',()=>dz.classList.remove('over'));
-dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('over');if(currentUser&&!currentUser.isPremium&&currentUser.exportLeft<=0){showLimitPopup();return;}const f=e.dataTransfer.files[0];if(f)loadFile(f);});
-dz.addEventListener('click',()=>{if(currentUser&&!currentUser.isPremium&&currentUser.exportLeft<=0){showLimitPopup();return;}const i=document.createElement('input');i.type='file';i.accept='audio/*';i.onchange=e=>e.target.files[0]&&loadFile(e.target.files[0]);i.click();});
+dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('over');if(currentUser&&!currentUser.isUnlimited&&currentUser.exportLeft<=0){showLimitPopup();return;}const f=e.dataTransfer.files[0];if(f)loadFile(f);});
+dz.addEventListener('click',()=>{if(currentUser&&!currentUser.isUnlimited&&currentUser.exportLeft<=0){showLimitPopup();return;}const i=document.createElement('input');i.type='file';i.accept='audio/*';i.onchange=e=>e.target.files[0]&&loadFile(e.target.files[0]);i.click();});
 
 function updateSliderFill(el,min,max){const pct=(el.value-min)/(max-min)*100;el.style.background=`linear-gradient(to right,var(--accent) ${pct}%,var(--s3) ${pct}%)`;}
 function initSliders(){document.querySelectorAll('input[type=range]:not(.eq-slider)').forEach(el=>{const min=parseFloat(el.min)||0,max=parseFloat(el.max)||100;updateSliderFill(el,min,max);el.addEventListener('input',()=>updateSliderFill(el,min,max));});}
@@ -686,7 +687,7 @@ function applyPreset(el,sp,pt,vl){
 
 async function doExport(){
   if(!audioBuffer){showStatus('⚠ Load audio dulu!',2000);return;}
-  if(!currentUser?.isPremium){
+  if(!currentUser?.isUnlimited){
     const lr=await fetch('/api/bypass',{method:'POST'});const ld=await lr.json();
     if(!ld.ok){if(ld.limitReached){showLimitPopup();return;}showStatus('⚠ '+(ld.error||'Gagal'),3000);return;}
     const badge=document.getElementById('exportBadge');
@@ -758,19 +759,24 @@ async function initAuth(){
     renderUserArea(data);
     // Force update badge dengan nilai fresh dari server
     const badge=document.getElementById('exportBadge');
-    if(badge&&!data.isPremium){
+    if(badge&&!data.isUnlimited){
       badge.textContent=`📤 sisa ${data.exportLeft}/3`;
       badge.style.color=data.exportLeft>0?'var(--accent)':'#ff6b6b';
     }
-    if(!data.isPremium&&data.exportLeft<=0)showLimitPopup();
+    if(!data.isUnlimited&&data.exportLeft<=0)showLimitPopup();
   }catch(e){document.getElementById('loginGate').style.display='flex';}
 }
 
 function renderUserArea(user){
   const avatar=user.avatar?`https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png`:`https://cdn.discordapp.com/embed/avatars/0.png`;
-    const badge=user.isPremium
-    ?`<span style="font-size:10px;font-weight:600;padding:3px 9px;border-radius:20px;background:rgba(200,242,97,.1);border:1px solid rgba(200,242,97,.2);color:var(--accent)">⭐ Premium</span>`
-    :`<span id="exportBadge" style="font-size:10px;font-weight:600;padding:3px 9px;border-radius:20px;background:rgba(200,242,97,.1);border:1px solid rgba(200,242,97,.2);color:${user.exportLeft>0?'var(--accent)':'#ff6b6b'}">📤 sisa ${user.exportLeft}/3</span>`;
+  let badge;
+  if(user.plan==='premium'){
+    badge=`<span style="font-size:10px;font-weight:600;padding:3px 9px;border-radius:20px;background:rgba(200,242,97,.1);border:1px solid rgba(200,242,97,.2);color:var(--accent)">⭐ Premium</span>`;
+  } else if(user.plan==='basic'){
+    badge=`<span style="font-size:10px;font-weight:600;padding:3px 9px;border-radius:20px;background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.3);color:#60a5fa">⚡ Basic</span>`;
+  } else {
+    badge=`<span id="exportBadge" style="font-size:10px;font-weight:600;padding:3px 9px;border-radius:20px;background:rgba(200,242,97,.1);border:1px solid rgba(200,242,97,.2);color:${user.exportLeft>0?'var(--accent)':'#ff6b6b'}">📤 sisa ${user.exportLeft}/3</span>`;
+  }
   document.getElementById('userArea').innerHTML=`
     ${badge}
     <div class="userpill">
