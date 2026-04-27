@@ -437,6 +437,25 @@ window.addEventListener('scroll',()=>{
   document.getElementById('navbar').classList.toggle('scrolled',window.scrollY>20);
 });
 
+// Cek error dari URL
+const urlParams = new URLSearchParams(location.search);
+const err = urlParams.get('error');
+if(err) {
+  const msgs = {
+    ip_blocked: '⚠️ Device ini sudah terdaftar dengan akun Discord lain. Gunakan akun Discord pertama kamu.',
+    not_member: '❌ Kamu harus join server Discord kami dulu!',
+    token_failed: '❌ Login gagal, coba lagi.',
+    server_error: '❌ Server error, coba lagi.',
+  };
+  const msg = msgs[err] || '❌ Login gagal.';
+  const toast = document.createElement('div');
+  toast.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1a1a1a;border:1px solid #333;color:#f0f0f0;padding:12px 20px;border-radius:10px;font-size:13px;font-family:Sora,sans-serif;z-index:999;max-width:90%;text-align:center;box-shadow:0 4px 20px rgba(0,0,0,.4)';
+  toast.textContent = msg;
+  document.body.appendChild(toast);
+  setTimeout(()=>toast.remove(), 6000);
+  history.replaceState({}, '', '/');
+}
+
 // Generate waveform preview
 const pwav=document.getElementById('pwav');
 const h=[20,35,55,70,85,75,60,80,90,70,55,65,80,75,60,45,70,85,75,60,50,65,80,70,55,40,60,75,85,70,55,45,60,75,65,50,40,55,70,80,65,50,35,55,70,80,65,50,40,60,75,65,50,35,50,65,80,65,50,40,55,70,60,45,65,80,70,55,40,60];
