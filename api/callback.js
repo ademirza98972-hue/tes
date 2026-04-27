@@ -42,7 +42,8 @@ module.exports = async function handler(req, res) {
     const existingUsers = await ipCheckRes.json();
 
     if (Array.isArray(existingUsers) && existingUsers.length > 0) {
-      // IP sudah dipakai akun lain → tolak
+      // IP sudah dipakai akun lain → hapus cookie dan tolak
+      res.setHeader('Set-Cookie', 'nova_session=; Path=/; HttpOnly; Secure; Max-Age=0; SameSite=Lax');
       return res.redirect('/?error=ip_blocked');
     }
 
