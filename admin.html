@@ -203,7 +203,17 @@ async function resetExport(){
   }
 }
 
-async function quickSetPlan(userId, planVal){
+async function deleteUser(userId, username){
+  if(!confirm(`Hapus akun ${username}? Data akan hilang permanen.`)) return;
+  const res = await fetch('/api/admin', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ secret: adminSecret, userId, action: 'delete_user' })
+  });
+  const data = await res.json();
+  if(data.ok){ loadUsers(); }
+  else alert('Error: '+(data.error||'Gagal'));
+}
   let plan, duration;
   if(planVal === 'basic_weekly'){ plan='basic'; duration='weekly'; }
   else if(planVal === 'premium_monthly'){ plan='premium'; duration='monthly'; }
@@ -257,6 +267,7 @@ async function loadUsers(){
             <option value="premium_lifetime">Premium Selamanya</option>
             <option value="free">Reset ke Free</option>
           </select>
+          <button class="btn btn-red" style="font-size:11px;padding:4px 10px" onclick="deleteUser('${u.id}','${u.username}')">Hapus</button>
         </div>
       </td>
     </tr>`;
