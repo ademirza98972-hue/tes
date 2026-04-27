@@ -728,6 +728,11 @@ function encodeMP3(buf){return new Promise((res,rej)=>{try{if(typeof lamejs==='u
 function encodeWAV(buf){const nc=buf.numberOfChannels,sr=buf.sampleRate,ns=buf.length,ba=nc*2,ds=ns*ba;const ab=new ArrayBuffer(44+ds),v=new DataView(ab);const ws=(o,s)=>{for(let i=0;i<s.length;i++)v.setUint8(o+i,s.charCodeAt(i));};ws(0,'RIFF');v.setUint32(4,36+ds,true);ws(8,'WAVE');ws(12,'fmt ');v.setUint32(16,16,true);v.setUint16(20,1,true);v.setUint16(22,nc,true);v.setUint32(24,sr,true);v.setUint32(28,sr*ba,true);v.setUint16(32,ba,true);v.setUint16(34,16,true);ws(36,'data');v.setUint32(40,ds,true);const chs=[];for(let c=0;c<nc;c++)chs.push(buf.getChannelData(c));let off=44;for(let i=0;i<ns;i++)for(let c=0;c<nc;c++){const s=Math.max(-1,Math.min(1,chs[c][i]));v.setInt16(off,s<0?s*0x8000:s*0x7FFF,true);off+=2;}return ab;}
 
 function loadFile(file){
+  // Cek ukuran file max 40MB
+  if(file.size > 40 * 1024 * 1024){
+    showStatus('⚠ File terlalu besar! Maksimal 40MB.',4000);
+    return;
+  }
   origFileName=file.name;
   document.getElementById('waveHero').style.display='block';
   document.getElementById('trimRow').style.display='flex';
@@ -754,7 +759,13 @@ async function initAuth(){
   const params=new URLSearchParams(location.search);
   const err=params.get('error');
   if(err){
-    const msgs={not_member:'❌ Join server Discord dulu!',token_failed:'❌ Login gagal, coba lagi.',no_code:'❌ Login dibatalkan.',server_error:'❌ Server error, coba lagi.'};
+    const msgs={
+      not_member:'❌ Join server Discord dulu!',
+      token_failed:'❌ Login gagal, coba lagi.',
+      no_code:'❌ Login dibatalkan.',
+      server_error:'❌ Server error, coba lagi.',
+      ip_blocked:'⚠️ Device ini sudah terdaftar dengan akun Discord lain. Gunakan akun Discord pertama kamu.'
+    };
     document.getElementById('loginError').textContent=msgs[err]||'❌ Login gagal.';
     document.getElementById('loginError').style.display='block';
     document.getElementById('loginGate').style.display='flex';
