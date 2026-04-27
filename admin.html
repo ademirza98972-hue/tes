@@ -205,30 +205,24 @@ async function resetExport(){
   }
 }
 
-async function deleteUser(userId, username){
-  if(!confirm(`Hapus akun ${username}? Data akan hilang permanen.`)) return;
-  const res = await fetch('/api/admin', {
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({ secret: adminSecret, userId, action: 'delete_user' })
-  });
-  const data = await res.json();
-  if(data.ok){ loadUsers(); }
+async function quickSetPlan(userId, planVal){
+  if(!planVal) return;
+  let plan, duration;
+  if(planVal==='basic_weekly'){plan='basic';duration='weekly';}
+  else if(planVal==='premium_monthly'){plan='premium';duration='monthly';}
+  else if(planVal==='premium_lifetime'){plan='premium';duration='lifetime';}
+  else{plan='free';duration=null;}
+  const res=await fetch('/api/admin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({secret:adminSecret,userId,action:'set_plan',plan,duration})});
+  const data=await res.json();
+  if(data.ok)loadUsers();
   else alert('Error: '+(data.error||'Gagal'));
 }
-  let plan, duration;
-  if(planVal === 'basic_weekly'){ plan='basic'; duration='weekly'; }
-  else if(planVal === 'premium_monthly'){ plan='premium'; duration='monthly'; }
-  else if(planVal === 'premium_lifetime'){ plan='premium'; duration='lifetime'; }
-  else { plan='free'; duration=null; }
 
-  const res = await fetch('/api/admin', {
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({ secret: adminSecret, userId, action: 'set_plan', plan, duration })
-  });
-  const data = await res.json();
-  if(data.ok) loadUsers();
+async function deleteUser(userId, username){
+  if(!confirm(`Hapus akun ${username}? Data akan hilang permanen.`)) return;
+  const res=await fetch('/api/admin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({secret:adminSecret,userId,action:'delete_user'})});
+  const data=await res.json();
+  if(data.ok)loadUsers();
   else alert('Error: '+(data.error||'Gagal'));
 }
 
