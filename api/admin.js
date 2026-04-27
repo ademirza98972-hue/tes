@@ -64,6 +64,16 @@ module.exports = async function handler(req, res) {
     updateData = { plan: 'premium', is_premium: true, plan_expiry: null };
   } else if (action === 'deactivate') {
     updateData = { plan: 'free', is_premium: false, plan_expiry: null };
+  } else if (action === 'delete_user') {
+    const delRes = await fetch(`${SUPABASE_URL}/rest/v1/users?id=eq.${userId}`, {
+      method: 'DELETE',
+      headers: {
+        'apikey': SUPABASE_KEY,
+        'Authorization': `Bearer ${SUPABASE_KEY}`,
+      },
+    });
+    if (!delRes.ok) return res.status(500).json({ error: 'Gagal hapus user' });
+    return res.status(200).json({ ok: true, userId, deleted: true });
   } else {
     return res.status(400).json({ error: 'Action tidak valid' });
   }
