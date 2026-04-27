@@ -122,20 +122,22 @@
 <script>
 let adminSecret = '';
 
-function checkGate(){
+async function checkGate(){
   const val = document.getElementById('gateInput').value.trim();
   if(!val){ showGateErr(); return; }
-  fetch('/api/users?secret='+encodeURIComponent(val))
-    .then(r => {
-      if(r.ok){
-        adminSecret = val;
-        document.getElementById('gate').style.display = 'none';
-        document.getElementById('adminPanel').style.display = 'block';
-        loadUsers();
-      } else {
-        showGateErr();
-      }
-    }).catch(showGateErr);
+  try {
+    const r = await fetch('/api/users?secret='+encodeURIComponent(val));
+    if(r.ok){
+      adminSecret = val;
+      document.getElementById('gate').style.display = 'none';
+      document.getElementById('adminPanel').style.display = 'block';
+      loadUsers();
+    } else {
+      showGateErr();
+    }
+  } catch(e) {
+    showGateErr();
+  }
 }
 function showGateErr(){
   document.getElementById('gateErr').style.display='block';
