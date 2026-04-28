@@ -305,7 +305,7 @@ async function loadUsers(){
       <td style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#9ca3af">${u.id}</td>
       <td><span class="pill ${pillClass}">${pillLabel}</span></td>
       <td><div style="font-size:12px">${u.plan_expiry ? expiryStr : '—'}</div></td>
-      <td style="font-family:'JetBrains Mono',monospace">${u.bypass_count||0}/2 <span style="color:#9ca3af;font-size:11px">(sisa ${Math.max(0,3-(u.bypass_count||0))})</span></td>
+      <td style="font-family:'JetBrains Mono',monospace">${u.bypass_count||0}/2 <span style="color:#9ca3af;font-size:11px">(sisa ${Math.max(0,2-(u.bypass_count||0))})</span></td>
       <td>
         <div class="action-btns">
           <select onchange="quickSetPlan('${u.id}',this.value);this.value=''" style="font-size:11px;padding:4px 6px;border-radius:5px;border:1px solid #e4e4e7;cursor:pointer;max-width:140px">
