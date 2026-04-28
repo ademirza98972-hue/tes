@@ -20,6 +20,20 @@ function rateLimit(ip, max=10, windowMs=60000) {
   return entry.count > max;
 }
 
+async function logActivity(userId, action, detail) {
+  try {
+    await fetch(`${SUPABASE_URL}/rest/v1/activity_logs`, {
+      method: 'POST',
+      headers: {
+        'apikey': SUPABASE_KEY,
+        'Authorization': `Bearer ${SUPABASE_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ user_id: userId, action, detail }),
+    });
+  } catch(e) {}
+}
+
 module.exports = async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end();
 
@@ -41,7 +55,6 @@ module.exports = async function handler(req, res) {
     const user = users?.[0];
     if (!user) return res.status(401).json({ error: 'User not found' });
 
-    // Cek plan & expiry
     const now = new Date();
     let plan = user.plan || 'free';
     if (plan !== 'free' && user.plan_expiry && now > new Date(user.plan_expiry)) {
@@ -53,12 +66,11 @@ module.exports = async function handler(req, res) {
       });
     }
 
-    // Basic & Premium = unlimited
     if (plan === 'basic' || plan === 'premium') {
+      await logActivity(user.id, 'export', `plan:${plan}`);
       return res.status(200).json({ ok: true, plan, exportLeft: 999 });
     }
 
-    // Free = 3x/hari
     const today = new Date().toISOString().split('T')[0];
     let count = user.bypass_count || 0;
     if (user.bypass_reset_date !== today) {
@@ -70,7 +82,10 @@ module.exports = async function handler(req, res) {
       });
     }
 
-    if (count >= 3) return res.status(403).json({ error: 'Limit export harian habis', limitReached: true, exportLeft: 0 });
+    if (count >= 3) {
+      await logActivity(user.id, 'export_blocked', 'limit reached');
+      return res.status(403).json({ error: 'Limit export harian habis', limitReached: true, exportLeft: 0 });
+    }
 
     await fetch(`${SUPABASE_URL}/rest/v1/users?id=eq.${user.id}`, {
       method: 'PATCH',
@@ -78,6 +93,7 @@ module.exports = async function handler(req, res) {
       body: JSON.stringify({ bypass_count: count + 1, bypass_reset_date: today }),
     });
 
+    await logActivity(user.id, 'export', `free:${count + 1}/3`);
     res.status(200).json({ ok: true, plan: 'free', exportUsed: count + 1, exportLeft: 3 - (count + 1) });
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
