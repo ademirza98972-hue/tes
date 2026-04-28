@@ -14,6 +14,17 @@ function adminRateLimit(ip) {
   return entry.blocked;
 }
 
+
+async function logActivity(userId, action, detail) {
+  try {
+    await fetch(`${SUPABASE_URL}/rest/v1/activity_logs`, {
+      method: 'POST',
+      headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id: userId, action, detail }),
+    });
+  } catch(e) {}
+}
+
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -94,5 +105,15 @@ module.exports = async function handler(req, res) {
     return res.status(404).json({ error: 'User tidak ditemukan. Pastikan user sudah pernah login.' });
   }
 
-  res.status(200).json({ ok: true, userId, updateData, user: result[0] });
+  // Log aktivitas
+    if (action === 'set_plan') {
+      await logActivity(userId, 'plan_change', `${plan}:${duration||'lifetime'}`);
+    } else if (action === 'delete_user') {
+      // tidak log karena user sudah dihapus
+    } else if (action === 'reset_export') {
+      await logActivity(userId, 'export_reset', 'by admin');
+    }
+    res.status(200).json({ ok: true, userId, updateData, user: result[0] });
 };
+
+// Tambah fungsi log (append ke file yang sudah ada)
