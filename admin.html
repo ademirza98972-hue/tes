@@ -107,6 +107,21 @@
       <div class="msg" id="resetMsg"></div>
     </div>
 
+    <!-- ACTIVITY LOG -->
+    <div class="card">
+      <h2>📋 Riwayat Aktivitas</h2>
+      <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+        <input type="text" id="logUserId" placeholder="Filter Discord ID (opsional)" style="flex:1;min-width:200px;padding:8px 12px;border-radius:8px;border:1px solid #e4e4e7;font-size:13px;font-family:'Inter',sans-serif;outline:none">
+        <select id="logLimit" style="padding:8px 12px;border-radius:8px;border:1px solid #e4e4e7;font-size:13px;font-family:'Inter',sans-serif;outline:none">
+          <option value="50">50 log terakhir</option>
+          <option value="100">100 log terakhir</option>
+          <option value="200">200 log terakhir</option>
+        </select>
+        <button class="btn btn-gray" onclick="loadLogs()">🔍 Tampilkan</button>
+      </div>
+      <div id="logTable"><div class="empty">Klik Tampilkan untuk melihat riwayat</div></div>
+    </div>
+
     <!-- USER LIST -->
     <div class="card">
       <h2>👥 Semua User</h2>
@@ -226,7 +241,40 @@ async function deleteUser(userId, username){
   else alert('Error: '+(data.error||'Gagal'));
 }
 
-async function loadUsers(){
+async function loadLogs(){
+  const userId = document.getElementById('logUserId').value.trim();
+  const limit = document.getElementById('logLimit').value;
+  let url = `/api/logs?secret=${encodeURIComponent(adminSecret)}&limit=${limit}`;
+  if(userId) url += `&userId=${encodeURIComponent(userId)}`;
+  const res = await fetch(url);
+  if(!res.ok){ document.getElementById('logTable').innerHTML='<div class="empty">❌ Gagal load</div>'; return; }
+  const logs = await res.json();
+  if(!logs.length){ document.getElementById('logTable').innerHTML='<div class="empty">Belum ada riwayat</div>'; return; }
+
+  const actionLabels = {
+    'export': '📤 Export',
+    'export_blocked': '🚫 Export Blocked',
+    'export_reset': '🔄 Reset Export',
+    'login': '🔐 Login',
+    'register': '🆕 Register',
+    'plan_change': '⭐ Ganti Plan',
+  };
+
+  let html = `<table><thead><tr><th>Waktu</th><th>User</th><th>Aksi</th><th>Detail</th></tr></thead><tbody>`;
+  logs.forEach(log => {
+    const time = new Date(log.created_at).toLocaleString('id-ID', {day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
+    const username = log.users?.username || log.user_id?.slice(0,10)+'...';
+    const actionLabel = actionLabels[log.action] || log.action;
+    html += `<tr>
+      <td style="font-size:11px;font-family:'JetBrains Mono',monospace;color:#9ca3af;white-space:nowrap">${time}</td>
+      <td style="font-weight:600">${username}</td>
+      <td>${actionLabel}</td>
+      <td style="font-size:11px;color:#9ca3af;font-family:'JetBrains Mono',monospace">${log.detail||'—'}</td>
+    </tr>`;
+  });
+  html += `</tbody></table>`;
+  document.getElementById('logTable').innerHTML = html;
+}
   const res = await fetch('/api/users?secret='+encodeURIComponent(adminSecret));
   if(!res.ok){ document.getElementById('userTable').innerHTML='<div class="empty">❌ Gagal load</div>'; return; }
   const users = await res.json();
