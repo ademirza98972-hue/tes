@@ -99,11 +99,13 @@
 
     <!-- RESET EXPORT -->
     <div class="card">
-      <h2>🔄 Reset Export Count</h2>
+      <h2>🔄 Set Export Count</h2>
       <div class="form-row">
         <input type="text" id="resetUserId" placeholder="Discord User ID (kosongkan untuk reset semua)">
-        <button class="btn btn-blue" onclick="resetExport()">Reset Export</button>
+        <input type="number" id="resetCount" min="0" max="3" value="0" style="max-width:80px" placeholder="0">
+        <button class="btn btn-blue" onclick="resetExport()">Set Export</button>
       </div>
+      <div style="font-size:11px;color:#9ca3af;margin-top:6px">Isi angka 0–3 untuk set jumlah export terpakai. Kosongkan User ID untuk set semua user.</div>
       <div class="msg" id="resetMsg"></div>
     </div>
 
@@ -190,19 +192,19 @@ async function setPlan(){
 
 async function resetExport(){
   const userId = document.getElementById('resetUserId').value.trim();
+  const count = parseInt(document.getElementById('resetCount').value) || 0;
   const msg = document.getElementById('resetMsg');
 
   if(userId){
     const res = await fetch('/api/admin', {
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ secret: adminSecret, userId, action: 'reset_export' })
+      body: JSON.stringify({ secret: adminSecret, userId, action: 'reset_export', count })
     });
     const data = await res.json();
-    if(data.ok){ showMsg(msg,'✓ Export count direset!','ok'); loadUsers(); }
+    if(data.ok){ showMsg(msg,`✓ Export di-set ke ${count}!`,'ok'); loadUsers(); }
     else showMsg(msg,'⚠ '+(data.error||'Gagal'),'err');
   } else {
-    // Reset semua user
     const res = await fetch('/api/users?secret='+encodeURIComponent(adminSecret));
     const users = await res.json();
     let success = 0;
@@ -210,12 +212,12 @@ async function resetExport(){
       const r = await fetch('/api/admin', {
         method:'POST',
         headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ secret: adminSecret, userId: u.id, action: 'reset_export' })
+        body: JSON.stringify({ secret: adminSecret, userId: u.id, action: 'reset_export', count })
       });
       const d = await r.json();
       if(d.ok) success++;
     }
-    showMsg(msg, `✓ ${success} user direset!`, 'ok');
+    showMsg(msg, `✓ ${success} user di-set ke ${count}!`, 'ok');
     loadUsers();
   }
 }
