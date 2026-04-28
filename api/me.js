@@ -33,7 +33,7 @@ function getPlanInfo(user) {
   }
 
   const isUnlimited = plan === 'basic' || plan === 'premium';
-  const exportLimit = isUnlimited ? 999 : 3;
+  const exportLimit = isUnlimited ? 999 : 2;
 
   return { plan, isUnlimited, exportLimit, planExpiry: user.plan_expiry };
 }
@@ -72,7 +72,7 @@ module.exports = async function handler(req, res) {
     }
 
     // Reset bypass count harian
-    const today = new Date().toISOString().split('T')[0];
+    const today = new Date(Date.now() + 8*60*60*1000).toISOString().split('T')[0];
     if (user.bypass_reset_date !== today && !isUnlimited) {
       await fetch(`${SUPABASE_URL}/rest/v1/users?id=eq.${user.id}`, {
         method: 'PATCH',
