@@ -458,6 +458,7 @@ let eqNodes=[],distNode=null,chorusNode=null,phaserNode=null;
 let audioBuffer=null,isPlaying=false,pTimer=null,startedAt=0,pausedAt=0;
 let rawBuf=null,waveData=null,seekDrag=false,origFileName='';
 let trimStart=0,trimEnd=0,trimMode=true,trimDrag=null;
+let fadeIn=0,fadeOut=0;
 let reverbWet=0,delayWet=0,distWet=0,chorusWet=0,phaserWet=0;
 let currentUser=null,waveEventsInit=false;
 
@@ -749,8 +750,6 @@ async function doExport(){
     src.detune.value=(pitch-Math.log2(speed)*12)*100;
     const g=offCtx.createGain();g.gain.value=vol/100;
     // Apply fade in/out
-    if(fadeIn>0){g.gain.setValueAtTime(0,0);g.gain.linearRampToValueAtTime(vol/100,fadeIn/speed);}
-    if(fadeOut>0){const fadeOutStart=(trimDur/speed)-(fadeOut/speed);if(fadeOutStart>0){g.gain.setValueAtTime(vol/100,fadeOutStart);g.gain.linearRampToValueAtTime(0,trimDur/speed);}}
     src.connect(g);g.connect(offCtx.destination);src.start(0,tStart,trimDur);
     bar.style.width='40%';const rendered=await offCtx.startRendering();bar.style.width='65%';
     lbl.textContent='Encoding...';
