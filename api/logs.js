@@ -7,12 +7,30 @@ module.exports = async function handler(req, res) {
   const { secret, userId, limit = 50 } = req.query;
   if (!ADMIN_SECRET || secret !== ADMIN_SECRET) return res.status(403).json({ error: 'Unauthorized' });
 
-  let url = `${SUPABASE_URL}/rest/v1/activity_logs?select=*,users(username,avatar)&order=created_at.desc&limit=${limit}`;
-  if (userId) url += `&user_id=eq.${userId}`;
+  try {
+    let url = `${SUPABASE_URL}/rest/v1/activity_logs?select=*&order=created_at.desc&limit=${limit}`;
+    if (userId) url += `&user_id=eq.${userId}`;
 
-  const dbRes = await fetch(url, {
-    headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` },
-  });
-  const logs = await dbRes.json();
-  res.status(200).json(Array.isArray(logs) ? logs : []);
+    const dbRes = await fetch(url, {
+      headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` },
+    });
+    const logs = await dbRes.json();
+
+    // Ambil username dari tabel users untuk setiap log
+    if (Array.isArray(logs) && logs.length > 0) {
+      const userIds = [...new Set(logs.map(l => l.user_id))];
+      const usersRes = await fetch(
+        `${SUPABASE_URL}/rest/v1/users?id=in.(${userIds.join(',')})&select=id,username,avatar`,
+        { headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` } }
+      );
+      const users = await usersRes.json();
+      const userMap = {};
+      if (Array.isArray(users)) users.forEach(u => userMap[u.id] = u);
+      logs.forEach(log => { log.user = userMap[log.user_id] || null; });
+    }
+
+    res.status(200).json(Array.isArray(logs) ? logs : []);
+  } catch(err) {
+    res.status(500).json({ error: err.message });
+  }
 };
