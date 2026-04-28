@@ -82,7 +82,7 @@ module.exports = async function handler(req, res) {
       });
     }
 
-    if (count >= 3) {
+    if (count >= 2) {
       await logActivity(user.id, 'export_blocked', 'limit reached');
       return res.status(403).json({ error: 'Limit export harian habis', limitReached: true, exportLeft: 0 });
     }
@@ -93,8 +93,8 @@ module.exports = async function handler(req, res) {
       body: JSON.stringify({ bypass_count: count + 1, bypass_reset_date: today }),
     });
 
-    await logActivity(user.id, 'export', `free:${count + 1}/3`);
-    res.status(200).json({ ok: true, plan: 'free', exportUsed: count + 1, exportLeft: 3 - (count + 1) });
+    await logActivity(user.id, 'export', `free:${count + 1}/2`);
+    res.status(200).json({ ok: true, plan: 'free', exportUsed: count + 1, exportLeft: 2 - (count + 1) });
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
   }
