@@ -329,34 +329,6 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:13px;heigh
 
     <div class="status-bar" id="statusBar"></div>
 
-      <!-- Fade -->
-      <div class="tool-pane" id="tab-fade" style="display:none;padding:12px 16px">
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
-          <div>
-            <div class="ctr" style="margin-bottom:5px"><span class="clbl">Fade In</span><span class="cval" id="fadeInVal">0.0s</span></div>
-            <input type="range" id="fadeInSlider" min="0" max="10" value="0" step="0.1">
-          </div>
-          <div>
-            <div class="ctr" style="margin-bottom:5px"><span class="clbl">Fade Out</span><span class="cval" id="fadeOutVal">0.0s</span></div>
-            <input type="range" id="fadeOutSlider" min="0" max="10" value="0" step="0.1">
-          </div>
-        </div>
-      </div>
-
-      <!-- BPM -->
-      <div class="tool-pane" id="tab-bpm" style="display:none;padding:12px 16px">
-        <div style="display:flex;align-items:center;gap:16px">
-          <div style="font-size:32px;font-weight:800;color:var(--accent);font-family:'JetBrains Mono',monospace;letter-spacing:-1px;line-height:1" id="bpmDisplay">—</div>
-          <div>
-            <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:1px">BPM</div>
-            <div style="font-size:10px;color:var(--muted);margin-top:2px" id="bpmConf"></div>
-          </div>
-          <div id="bpmTags" style="display:flex;flex-wrap:wrap;gap:4px;flex:1"></div>
-          <button id="bpmBtn" onclick="detectBPM()" style="padding:6px 14px;border-radius:6px;border:none;background:var(--accent);color:#0f0f0f;font-size:11px;font-weight:700;cursor:pointer;font-family:'Sora',sans-serif">Detect</button>
-        </div>
-      </div>
-    </div>
-
     <div class="content-area">
       <div class="drop-zone" id="dropZone">
         <div class="drop-ic"><svg viewBox="0 0 24 24"><path d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3h-6z"/></svg></div>
