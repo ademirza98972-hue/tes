@@ -329,27 +329,6 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:13px;heigh
 
     <div class="status-bar" id="statusBar"></div>
 
-    <!-- TOOLS ROW — bawah waveform -->
-    <div id="toolsRow" style="display:none;border-top:1px solid var(--border);background:var(--s1);flex-shrink:0">
-      <!-- Tab buttons -->
-      <div style="display:flex;border-bottom:1px solid var(--border)">
-        <button class="tool-tab active" data-tab="normalize" onclick="switchTab(this)">🎚 Normalize</button>
-        <button class="tool-tab" data-tab="fade" onclick="switchTab(this)">〰 Fade</button>
-        <button class="tool-tab" data-tab="bpm" onclick="switchTab(this)">🎵 BPM</button>
-      </div>
-
-      <!-- Normalize -->
-      <div class="tool-pane" id="tab-normalize" style="padding:12px 16px">
-        <div style="display:flex;align-items:center;gap:12px">
-          <div style="flex:1">
-            <div class="ctr" style="margin-bottom:5px"><span class="clbl">Target Level</span><span class="cval" id="normalizeTargetVal">-1.0 dB</span></div>
-            <input type="range" id="normalizeSlider" min="-12" max="0" value="-1" step="0.5" oninput="document.getElementById('normalizeTargetVal').textContent=parseFloat(this.value).toFixed(1)+' dB';updateSliderFill(this,-12,0)">
-          </div>
-          <button id="normalizeBtn" onclick="runNormalize()" style="padding:6px 14px;border-radius:6px;border:none;background:var(--accent);color:#0f0f0f;font-size:11px;font-weight:700;cursor:pointer;font-family:'Sora',sans-serif;white-space:nowrap">Analyze</button>
-        </div>
-        <div id="normalizeResult" style="display:none;margin-top:8px;padding:7px 10px;background:var(--s2);border-radius:6px;font-size:11px;color:var(--accent);font-family:'JetBrains Mono',monospace"></div>
-      </div>
-
       <!-- Fade -->
       <div class="tool-pane" id="tab-fade" style="display:none;padding:12px 16px">
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
@@ -830,7 +809,6 @@ function loadFile(file){
   document.getElementById('waveHero').style.display='block';
   document.getElementById('trimRow').style.display='flex';
   document.getElementById('transportRow').style.display='flex';
-  document.getElementById('toolsRow').style.display='block';
   document.getElementById('waveLabel').textContent=file.name.length>50?file.name.slice(0,50)+'...':file.name;
   document.getElementById('loginGate').style.display='none';
   initWaveEvents();
@@ -846,7 +824,6 @@ function resetApp(){
   document.getElementById('waveHero').style.display='none';
   document.getElementById('trimRow').style.display='none';
   document.getElementById('transportRow').style.display='none';
-  document.getElementById('toolsRow').style.display='none';
   rawBuf=null;audioBuffer=null;player=null;bypassOn=false;waveData=null;pausedAt=0;
   document.getElementById('bypassToggle').classList.remove('on');
 }
@@ -856,77 +833,6 @@ function switchTab(btn){
   btn.classList.add('active');
   document.querySelectorAll('.tool-pane').forEach(p=>p.style.display='none');
   document.getElementById('tab-'+btn.dataset.tab).style.display='block';
-}
-
-// ── NORMALIZE ──
-function runNormalize(){
-  if(!audioBuffer){showStatus('⚠ Load audio dulu!',2000);return;}
-  const btn=document.getElementById('normalizeBtn');
-  const result=document.getElementById('normalizeResult');
-  btn.textContent='Analyzing...';btn.disabled=true;
-  setTimeout(()=>{
-    const target=parseFloat(document.getElementById('normalizeSlider').value);
-    const data=audioBuffer.getChannelData(0);
-    let peak=0;
-    for(let i=0;i<data.length;i++){const abs=Math.abs(data[i]);if(abs>peak)peak=abs;}
-    const peakDb=20*Math.log10(Math.max(peak,0.0001));
-    const gain=target-peakDb;
-    vol=Math.min(150,Math.max(0,Math.round(vol*Math.pow(10,gain/20))));
-    if(gainNode)gainNode.gain.rampTo(vol/100,.1);
-    updateUI();
-    result.style.display='block';
-    result.textContent=`✓ Gain ${gain>=0?'+':''}${gain.toFixed(1)} dB diterapkan`;
-    btn.textContent='Reset';btn.disabled=false;
-    btn.onclick=()=>{vol=100;if(gainNode)gainNode.gain.rampTo(1,.1);updateUI();result.style.display='none';btn.textContent='Analyze';btn.onclick=runNormalize;};
-  },800);
-}
-
-// ── FADE ──
-let fadeIn=0,fadeOut=0;
-function onFadeIn(v){fadeIn=parseFloat(v);document.getElementById('fadeInVal').textContent=parseFloat(v).toFixed(1)+'s';updateSliderFill(document.getElementById('fadeInSlider'),0,10);}
-function onFadeOut(v){fadeOut=parseFloat(v);document.getElementById('fadeOutVal').textContent=parseFloat(v).toFixed(1)+'s';updateSliderFill(document.getElementById('fadeOutSlider'),0,10);}
-
-// ── BPM ──
-async function detectBPM(){
-  if(!audioBuffer){showStatus('⚠ Load audio dulu!',2000);return;}
-  const btn=document.getElementById('bpmBtn');
-  const display=document.getElementById('bpmDisplay');
-  const conf=document.getElementById('bpmConf');
-  const tags=document.getElementById('bpmTags');
-  btn.textContent='...';btn.disabled=true;
-  display.textContent='—';conf.textContent='Analyzing...';
-  setTimeout(async()=>{
-    try{
-      const offCtx=new OfflineAudioContext(1,audioBuffer.length,audioBuffer.sampleRate);
-      const src=offCtx.createBufferSource();src.buffer=audioBuffer;
-      const filter=offCtx.createBiquadFilter();filter.type='lowpass';filter.frequency.value=200;
-      src.connect(filter);filter.connect(offCtx.destination);src.start(0);
-      const rendered=await offCtx.startRendering();
-      const data=rendered.getChannelData(0);
-      const sr=rendered.sampleRate;
-      let peaks=0,lastPeak=-1;
-      const wSize=Math.floor(sr*0.01);
-      for(let i=wSize;i<data.length-wSize;i++){
-        if(Math.abs(data[i])>0.01){
-          let isPeak=true;
-          for(let j=-wSize;j<=wSize;j++){if(j!==0&&Math.abs(data[i+j])>=Math.abs(data[i])){isPeak=false;break;}}
-          if(isPeak&&(lastPeak<0||i-lastPeak>sr*0.25)){peaks++;lastPeak=i;}
-        }
-      }
-      const common=[60,70,75,80,85,90,95,100,105,110,115,120,125,128,130,135,140,150,160,170,180];
-      let bpm=Math.round((peaks/audioBuffer.duration)*60);
-      bpm=common.reduce((a,b)=>Math.abs(b-bpm)<Math.abs(a-bpm)?b:a);
-      display.textContent=bpm;conf.textContent='Detected';
-      tags.style.display='flex';
-      tags.innerHTML=`
-        <span style="font-size:9px;padding:2px 7px;border-radius:4px;border:1px solid ${bpm<90?'rgba(200,242,97,.3)':'var(--border)'};color:${bpm<90?'var(--accent)':'var(--muted)'}">Slow</span>
-        <span style="font-size:9px;padding:2px 7px;border-radius:4px;border:1px solid ${bpm>=90&&bpm<=130?'rgba(200,242,97,.3)':'var(--border)'};color:${bpm>=90&&bpm<=130?'var(--accent)':'var(--muted)'}">Mid</span>
-        <span style="font-size:9px;padding:2px 7px;border-radius:4px;border:1px solid ${bpm>130?'rgba(200,242,97,.3)':'var(--border)'};color:${bpm>130?'var(--accent)':'var(--muted)'}">Fast</span>
-        <span style="font-size:9px;padding:2px 7px;border-radius:4px;border:1px solid var(--border);color:var(--muted)">½ = ${Math.round(bpm/2)}</span>
-        <span style="font-size:9px;padding:2px 7px;border-radius:4px;border:1px solid var(--border);color:var(--muted)">2x = ${bpm*2}</span>`;
-    }catch(e){display.textContent='—';conf.textContent='Gagal';}
-    btn.textContent='Detect';btn.disabled=false;
-  },500);
 }
 
 // ── CUSTOM FILENAME ──
@@ -1027,8 +933,6 @@ function renderUserArea(user){
 
 window.addEventListener('resize',()=>{if(audioBuffer)setTimeout(buildAndRender,100);});
 initSliders();initEqSliders();updateUI();initAuth();
-document.getElementById('fadeInSlider').addEventListener('input',e=>onFadeIn(e.target.value));
-document.getElementById('fadeOutSlider').addEventListener('input',e=>onFadeOut(e.target.value));
 </script>
 </body>
 </html>
