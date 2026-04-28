@@ -275,6 +275,8 @@ async function loadLogs(){
   html += `</tbody></table>`;
   document.getElementById('logTable').innerHTML = html;
 }
+
+async function loadUsers(){
   const res = await fetch('/api/users?secret='+encodeURIComponent(adminSecret));
   if(!res.ok){ document.getElementById('userTable').innerHTML='<div class="empty">❌ Gagal load</div>'; return; }
   const users = await res.json();
