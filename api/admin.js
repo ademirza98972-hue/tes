@@ -6,10 +6,10 @@ const adminAttempts = new Map();
 function adminRateLimit(ip) {
   const now = Date.now();
   const entry = adminAttempts.get(ip) || { count: 0, start: now, blocked: false };
-  if (entry.blocked && now - entry.start < 900000) return true;
+  if (entry.blocked && now - entry.start < 60000) return true; // 1 menit saja
   if (now - entry.start > 300000) { entry.count = 0; entry.start = now; entry.blocked = false; }
   entry.count++;
-  if (entry.count > 5) { entry.blocked = true; entry.start = now; }
+  if (entry.count > 20) { entry.blocked = true; entry.start = now; } // limit lebih longgar
   adminAttempts.set(ip, entry);
   return entry.blocked;
 }
@@ -69,7 +69,8 @@ module.exports = async function handler(req, res) {
     updateData = { plan, plan_expiry: expiry, is_premium: plan !== 'free' };
 
   } else if (action === 'reset_export') {
-    updateData = { bypass_count: 0, bypass_reset_date: new Date().toISOString().split('T')[0] };
+    const exportCount = typeof body.count === 'number' ? body.count : 0;
+    updateData = { bypass_count: exportCount, bypass_reset_date: new Date().toISOString().split('T')[0] };
 
   } else if (action === 'activate') {
     updateData = { plan: 'premium', is_premium: true, plan_expiry: null };
