@@ -30,6 +30,7 @@ async function logActivity(userId, action, detail) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ user_id: userId, action, detail }),
+      cache: 'no-store' // Paksa bypass cache
     });
   } catch(e) {}
 }
@@ -48,8 +49,10 @@ module.exports = async function handler(req, res) {
     const session = JSON.parse(Buffer.from(sessionRaw, 'base64').toString());
     if (!session.id) return res.status(401).json({ error: 'Invalid session' });
 
+    // AMBIL DATA USER (NO CACHE)
     const dbRes = await fetch(`${SUPABASE_URL}/rest/v1/users?id=eq.${session.id}&select=*`, {
       headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` },
+      cache: 'no-store' // Kunci masalahnya di sini!
     });
     const users = await dbRes.json();
     const user = users?.[0];
@@ -63,6 +66,7 @@ module.exports = async function handler(req, res) {
         method: 'PATCH',
         headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ plan: 'free', plan_expiry: null }),
+        cache: 'no-store'
       });
     }
 
@@ -73,12 +77,14 @@ module.exports = async function handler(req, res) {
 
     const today = new Date().toISOString().split('T')[0];
     let count = user.bypass_count || 0;
+    
     if (user.bypass_reset_date !== today) {
       count = 0;
       await fetch(`${SUPABASE_URL}/rest/v1/users?id=eq.${user.id}`, {
         method: 'PATCH',
         headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ bypass_count: 0, bypass_reset_date: today }),
+        cache: 'no-store'
       });
     }
 
@@ -91,6 +97,7 @@ module.exports = async function handler(req, res) {
       method: 'PATCH',
       headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ bypass_count: count + 1, bypass_reset_date: today }),
+      cache: 'no-store'
     });
 
     await logActivity(user.id, 'export', `free:${count + 1}/2`);
