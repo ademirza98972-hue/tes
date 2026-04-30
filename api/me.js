@@ -24,11 +24,10 @@ function getPlanInfo(user) {
   const now = new Date();
   let plan = user.plan || 'free';
 
-  // Cek apakah plan sudah expired
   if (plan !== 'free' && user.plan_expiry) {
     const expiry = new Date(user.plan_expiry);
     if (now > expiry) {
-      plan = 'free'; // expired, downgrade ke free
+      plan = 'free'; 
     }
   }
 
@@ -39,7 +38,6 @@ function getPlanInfo(user) {
 }
 
 module.exports = async function handler(req, res) {
-  // SET HEADER ANTI CACHE UNTUK BROWSER DAN VERCEL EDGE
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
   res.setHeader('Pragma', 'no-cache');
   res.setHeader('Expires', '0');
@@ -57,10 +55,9 @@ module.exports = async function handler(req, res) {
     const session = JSON.parse(Buffer.from(sessionRaw, 'base64').toString());
     if (!session.id) return res.status(200).json({ loggedIn: false });
 
-    // AMBIL DATA USER (DITAMBAH CACHE: NO-STORE)
     const dbRes = await fetch(`${SUPABASE_URL}/rest/v1/users?id=eq.${session.id}&select=*`, {
       headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` },
-      cache: 'no-store' 
+      cache: 'no-store'
     });
     const users = await dbRes.json();
     const user = users?.[0];
@@ -68,7 +65,6 @@ module.exports = async function handler(req, res) {
 
     const { plan, isUnlimited, exportLimit, planExpiry } = getPlanInfo(user);
 
-    // Auto downgrade di database kalau plan expired
     if (plan === 'free' && user.plan !== 'free') {
       await fetch(`${SUPABASE_URL}/rest/v1/users?id=eq.${user.id}`, {
         method: 'PATCH',
@@ -78,8 +74,9 @@ module.exports = async function handler(req, res) {
       });
     }
 
-    // Reset bypass count harian
-    const today = new Date(Date.now() + 8*60*60*1000).toISOString().split('T')[0];
+    // FIX ZONA WAKTU: Disamakan dengan bypass.js memakai Waktu Indonesia (WIB)
+    const today = new Date(Date.now() + 7 * 60 * 60 * 1000).toISOString().split('T')[0];
+    
     if (user.bypass_reset_date !== today && !isUnlimited) {
       await fetch(`${SUPABASE_URL}/rest/v1/users?id=eq.${user.id}`, {
         method: 'PATCH',
@@ -90,7 +87,6 @@ module.exports = async function handler(req, res) {
       user.bypass_count = 0;
     }
 
-    // Perhitungan sisa export
     const exportLeft = isUnlimited ? 999 : Math.max(0, exportLimit - (user.bypass_count || 0));
 
     res.status(200).json({
