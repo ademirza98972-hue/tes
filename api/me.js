@@ -39,6 +39,10 @@ function getPlanInfo(user) {
 }
 
 module.exports = async function handler(req, res) {
+  // SET HEADER ANTI CACHE UNTUK BROWSER DAN VERCEL EDGE
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
   res.setHeader('Access-Control-Allow-Origin', req.headers.origin || '*');
   res.setHeader('Access-Control-Allow-Credentials', 'true');
 
@@ -53,8 +57,10 @@ module.exports = async function handler(req, res) {
     const session = JSON.parse(Buffer.from(sessionRaw, 'base64').toString());
     if (!session.id) return res.status(200).json({ loggedIn: false });
 
+    // AMBIL DATA USER (DITAMBAH CACHE: NO-STORE)
     const dbRes = await fetch(`${SUPABASE_URL}/rest/v1/users?id=eq.${session.id}&select=*`, {
       headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` },
+      cache: 'no-store' 
     });
     const users = await dbRes.json();
     const user = users?.[0];
@@ -68,6 +74,7 @@ module.exports = async function handler(req, res) {
         method: 'PATCH',
         headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ plan: 'free', plan_expiry: null }),
+        cache: 'no-store'
       });
     }
 
@@ -78,11 +85,13 @@ module.exports = async function handler(req, res) {
         method: 'PATCH',
         headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ bypass_count: 0, bypass_reset_date: today }),
+        cache: 'no-store'
       });
       user.bypass_count = 0;
     }
 
-    const exportLeft = isUnlimited ? 999 : Math.max(0, exportLimit - user.bypass_count);
+    // Perhitungan sisa export
+    const exportLeft = isUnlimited ? 999 : Math.max(0, exportLimit - (user.bypass_count || 0));
 
     res.status(200).json({
       loggedIn: true,
