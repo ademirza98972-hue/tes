@@ -30,7 +30,7 @@ async function logActivity(userId, action, detail) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ user_id: userId, action, detail }),
-      cache: 'no-store' // Paksa bypass cache
+      cache: 'no-store'
     });
   } catch(e) {}
 }
@@ -49,10 +49,9 @@ module.exports = async function handler(req, res) {
     const session = JSON.parse(Buffer.from(sessionRaw, 'base64').toString());
     if (!session.id) return res.status(401).json({ error: 'Invalid session' });
 
-    // AMBIL DATA USER (NO CACHE)
     const dbRes = await fetch(`${SUPABASE_URL}/rest/v1/users?id=eq.${session.id}&select=*`, {
       headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` },
-      cache: 'no-store' // Kunci masalahnya di sini!
+      cache: 'no-store'
     });
     const users = await dbRes.json();
     const user = users?.[0];
@@ -75,7 +74,8 @@ module.exports = async function handler(req, res) {
       return res.status(200).json({ ok: true, plan, exportLeft: 999 });
     }
 
-    const today = new Date().toISOString().split('T')[0];
+    // FIX ZONA WAKTU: Samakan dengan me.js memakai Waktu Indonesia (WIB)
+    const today = new Date(Date.now() + 7 * 60 * 60 * 1000).toISOString().split('T')[0];
     let count = user.bypass_count || 0;
     
     if (user.bypass_reset_date !== today) {
